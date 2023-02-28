@@ -176,19 +176,12 @@ _docker_run() {
     if [ -f /.dockerenv ]; then
         # we are already in docker container
         $@
-    elif [[ `arch` -ne "arm64" ]]; then
-        test -t 1 && use_tty="-t"
-        docker run -i $use_tty --rm \
-            -u $(id -u ${USER}):$(id -g ${USER}) \
-            -v $(pwd):/chos -w /chos \
-            ipads/chcore_builder:v1.3 \
-            $self $@
     else
         test -t 1 && use_tty="-t"
         docker run -i $use_tty --rm \
             -u $(id -u ${USER}):$(id -g ${USER}) \
             -v $(pwd):/chos -w /chos \
-            bessyzhang/chcore_builder_arm:2.0 \
+            ipads/chcore_builder:v1.3 \
             $self $@
     fi
 }
