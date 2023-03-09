@@ -10,7 +10,15 @@
  * Mulan PSL v1 for more details.
  */
 
-#pragma once
+#include <common/types.h>
+#include <common/macro.h>
+#include <arch/sync.h>
 
-extern void put32(u64 addr, u32 data);
-extern unsigned int get32(u64 addr);
+void flush_tlb_all(void)
+{
+        /* full system barrier */
+        dsb(sy);
+        asm volatile("tlbi vmalle1is\n\t" : : :);
+        dsb(sy);
+        isb();
+}

@@ -24,14 +24,9 @@ typedef int s32;
 typedef short s16;
 typedef signed char s8;
 
-#ifdef CHCORE
 #include <posix/sys/types.h>
 
 #define NULL ((void *)0)
-
-#else
-#include <stdlib.h>
-#endif
 
 typedef char bool;
 #define true (1)

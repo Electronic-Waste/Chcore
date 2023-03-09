@@ -2,6 +2,7 @@
 
 set -e
 
+# return true if @v1 <= @v2
 verlte() {
     [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n 1)" ]
 }
@@ -13,7 +14,20 @@ verlt() {
 qemu=$1
 shift
 qemu_options=$@
-qemu_version=$($qemu --version | head -n 1 | awk '{print $NF}')
+qemu_version_str=$($qemu --version | head -n 1)
+export IFS=' '
+flag="false"
+qemu_version=${qemu_version_str}
+for str in ${qemu_version_str};
+do
+    if [[ "${str}" == "version" ]]; then
+        flag="true"
+    elif [[ ${flag} == "true" ]]; then
+        qemu_version=${str}
+        break
+    fi
+done
+unset IFS
 
 if [[ "$qemu" == *"qemu-system-aarch64"* ]]; then
     if verlt $qemu_version 6.2.0; then

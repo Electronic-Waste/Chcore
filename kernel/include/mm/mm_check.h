@@ -12,5 +12,6 @@
 
 #pragma once
 
-extern void put32(u64 addr, u32 data);
-extern unsigned int get32(u64 addr);
+#include <common/types.h>
+
+u64 get_free_mem_size(void);

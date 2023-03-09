@@ -10,7 +10,14 @@
  * Mulan PSL v1 for more details.
  */
 
-#pragma once
+#include <common/types.h>
 
-extern void put32(u64 addr, u32 data);
-extern unsigned int get32(u64 addr);
+void memset(void *dst, char ch, size_t size)
+{
+        char *buf;
+        size_t i;
+
+        buf = (char *)dst;
+        for (i = 0; i < size; ++i)
+                buf[i] = ch;
+}

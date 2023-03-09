@@ -1,4 +1,4 @@
-LAB := 1
+LAB := 2
 
 V := @
 PROJECT_DIR := .
@@ -38,12 +38,11 @@ qemu-gdb:
 	$(V)$(_QEMU) -S -gdb tcp::$(QEMU_GDB_PORT) $(QEMU_OPTS)
 
 gdb:
-	$(V)$(GDB) -x $(PROJECT_DIR)/.gdbinit
+	$(V)gdb-multiarch -x $(PROJECT_DIR)/.gdbinit
 
 .PHONY: grade
 
 grade:
-	$(V)$(CHBUILD) distclean
-	$(V)$(CHBUILD) defconfig
-	$(V)$(CHBUILD) build
+	$(V)test -f $(PROJECT_DIR)/.config && cp $(PROJECT_DIR)/.config $(PROJECT_DIR)/.config.bak
 	$(V)$(PROJECT_DIR)/scripts/grade/lab$(LAB).sh
+	$(V)test -f $(PROJECT_DIR)/.config.bak && mv $(PROJECT_DIR)/.config.bak $(PROJECT_DIR)/.config
