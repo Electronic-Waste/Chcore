@@ -32,7 +32,7 @@
 #define kinfo(fmt, ...)
 #endif
 
-#if LOG_LEVEL >= DEBUG
+#if LOG_LEVEL > DEBUG
 #define kdebug(fmt, ...) printk("[DEBUG] " fmt, ##__VA_ARGS__)
 #else
 #define kdebug(fmt, ...)

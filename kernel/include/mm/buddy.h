@@ -82,3 +82,7 @@ void buddy_free_pages(struct phys_mem_pool *, struct page *page);
 void *page_to_virt(struct page *page);
 struct page *virt_to_page(void *ptr);
 u64 get_free_mem_size_from_buddy(struct phys_mem_pool *);
+
+void show_page(struct page *page);
+
+void show_buddy(struct page *buddy_page);
