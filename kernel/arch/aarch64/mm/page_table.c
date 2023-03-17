@@ -22,6 +22,18 @@
 
 #include <arch/mm/page_table.h>
 
+#define PGTBLx
+
+#ifdef PGTBL
+        #define PGTBL_LOG(fmt, args...) \
+                do { \
+                        printk("[PGTBL_LOG][LINE:%d][FUNCTION:%s]" fmt "\n", \
+                                __LINE__, __FUNCTION__, ##args); \
+                } while(0);
+#else
+        #define PGTBL_LOG(fmt, args...) {}
+#endif
+
 extern void set_ttbr0_el1(paddr_t);
 
 void set_page_table(paddr_t pgtbl)
@@ -123,6 +135,7 @@ static int get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **next_ptp,
         entry = &(cur_ptp->ent[index]);
         if (IS_PTE_INVALID(entry->pte)) {
                 if (alloc == false) {
+                        PGTBL_LOG("Level %d pte invalid and alloc == false", level);
                         return -ENOMAPPING;
                 } else {
                         /* alloc a new page table page */
@@ -135,13 +148,19 @@ static int get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **next_ptp,
                          * Hint: use get_pages to allocate a new page table page
                          *       set the attr `is_valid`, `is_table` and `next_table_addr` of new pte
                          */
-
+                        new_ptp = (ptp_t *) get_pages(0);
+                        new_ptp_paddr = virt_to_phys(new_ptp);
+                        entry->table.is_valid = 1;
+                        entry->table.is_table = 1;
+                        entry->table.next_table_addr = (new_ptp_paddr >> PAGE_SHIFT);
+                        PGTBL_LOG("Alloc a new ptp for level %d, new ptp's paddr:%llx", level, new_ptp_paddr);
                         /* LAB 2 TODO 3 END */
                 }
         }
 
         *next_ptp = (ptp_t *)GET_NEXT_PTP(entry);
         *pte = entry;
+        PGTBL_LOG("Level %d gets next ptp vaddr:%llx", level, *next_ptp);
         if (IS_PTE_TABLE(entry->pte))
                 return NORMAL_PTP;
         else
@@ -210,7 +229,35 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
          * return the pa and pte until a L0/L1 block or page, return
          * `-ENOMAPPING` if the va is not mapped.
          */
-
+        u32 level = 0;
+        ptp_t *cur_ptp = (ptp_t *) pgtbl;
+        ptp_t *next_ptp = NULL;
+        PGTBL_LOG("------------------");
+        while (true) {
+                int retval = get_next_ptp(cur_ptp, level, va, &next_ptp, entry, false);
+                /* The va is no mapped */
+                if (retval == -ENOMAPPING) {
+                        PGTBL_LOG("Level %d retval is ENOMAPPING", level);
+                        return -ENOMAPPING;
+                }
+                /* Get a block */
+                else if (level == 3 || retval == BLOCK_PTP) {
+                        PGTBL_LOG("Level %d get a block!", level);
+                        u64 offset;
+                        if (level == 1) offset = GET_VA_OFFSET_L1(va);
+                        else if (level == 2) offset = GET_VA_OFFSET_L2(va);
+                        else if (level == 3) offset = GET_VA_OFFSET_L3(va);
+                        else PGTBL_LOG("Get va offset error!");
+                        *pa = GET_PADDR_IN_PTE((*entry)) + offset;
+                        return 0;
+                }
+                /* Get a page table page (PTP) */
+                else if (retval == NORMAL_PTP) {
+                        PGTBL_LOG("Level %d retval is NORMAL_PTP", level);
+                        cur_ptp = next_ptp;
+                        level++;
+                }        
+        }
         /* LAB 2 TODO 3 END */
 }
 
@@ -224,7 +271,32 @@ int map_range_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
          * pte with the help of `set_pte_flags`. Iterate until all pages are
          * mapped.
          */
-
+        u64 cursor = 0;
+        vaddr_t cur_va = va;
+        paddr_t cur_pa = pa;
+        for (; cursor < len; cursor += PAGE_SIZE, cur_va += PAGE_SIZE, cur_pa += PAGE_SIZE) {
+                ptp_t *cur_ptp = (ptp_t *) pgtbl;
+                ptp_t *next_ptp = NULL;
+                pte_t *entry = NULL;
+                u32 level = 0;
+                int retval;
+                while (level <= 2) {
+                        retval = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &entry, true);
+                        cur_ptp = next_ptp;
+                        level++;
+                }
+                if (retval != NORMAL_PTP) {
+                        PGTBL_LOG("Return value error: should be NORMAL_PTP");
+                        return -1;
+                }
+                u32 index = GET_L3_INDEX(cur_va);
+                entry = &(next_ptp->ent[index]);
+                entry->l3_page.is_page = 1;
+                entry->l3_page.is_valid = 1;
+                entry->l3_page.pfn = (cur_pa >> PAGE_SHIFT);
+                set_pte_flags(entry, flags, USER_PTE);
+        }
+        return 0;
         /* LAB 2 TODO 3 END */
 }
 
@@ -236,7 +308,28 @@ int unmap_range_in_pgtbl(void *pgtbl, vaddr_t va, size_t len)
          * mark the final level pte as invalid. Iterate until all pages are
          * unmapped.
          */
-
+        u64 cursor = 0;
+        vaddr_t cur_va = va;
+        for (; cursor < len; cursor += PAGE_SIZE, cur_va += PAGE_SIZE) {
+                ptp_t *cur_ptp = (ptp_t *) pgtbl;
+                ptp_t *next_ptp = NULL;
+                pte_t *entry = NULL;
+                u32 level = 0;
+                int retval;
+                while (level <= 2) {
+                        retval = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &entry, false);
+                        if (retval != NORMAL_PTP) {
+                                PGTBL_LOG("Return value error: should be NORMAL_PTP");
+                                return -1;
+                        }
+                        cur_ptp = next_ptp;
+                        level++;
+                }
+                u32 index = GET_L3_INDEX(cur_va);
+                entry = &(next_ptp->ent[index]);
+                entry->l3_page.is_valid = 0;
+        }
+        return 0;
         /* LAB 2 TODO 3 END */
 }
 
