@@ -86,3 +86,7 @@ u64 get_free_mem_size_from_buddy(struct phys_mem_pool *);
 void show_page(struct page *page);
 
 void show_buddy(struct page *buddy_page);
+
+void set_alloc_page(struct page *start_page, int order);
+
+void set_free_page(struct page *start_page, int order);
