@@ -244,11 +244,24 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
                 else if (level == 3 || retval == BLOCK_PTP) {
                         PGTBL_LOG("Level %d get a block!", level);
                         u64 offset;
-                        if (level == 1) offset = GET_VA_OFFSET_L1(va);
-                        else if (level == 2) offset = GET_VA_OFFSET_L2(va);
-                        else if (level == 3) offset = GET_VA_OFFSET_L3(va);
+                        u64 paddr_base;
+                        if (level == 1) {
+                                offset = GET_VA_OFFSET_L1(va);
+                                paddr_base = ((u64) (*entry)->l1_block.pfn) << L1_INDEX_SHIFT;
+                                *pa = paddr_base + offset;
+                        }
+                        else if (level == 2) {
+                                offset = GET_VA_OFFSET_L2(va);
+                                paddr_base = ((u64) (*entry)->l2_block.pfn) << L2_INDEX_SHIFT;
+                                *pa = paddr_base + offset;
+                        }
+                        else if (level == 3) {
+                                offset = GET_VA_OFFSET_L3(va);
+                                paddr_base = ((u64) (*entry)->l3_page.pfn) << L3_INDEX_SHIFT;
+                                *pa = paddr_base + offset;
+                        }
                         else PGTBL_LOG("Get va offset error!");
-                        *pa = GET_PADDR_IN_PTE((*entry)) + offset;
+                        // *pa = GET_PADDR_IN_PTE((*entry)) + offset;
                         return 0;
                 }
                 /* Get a page table page (PTP) */
@@ -560,6 +573,7 @@ void lab2_test_page_table(void)
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
                         lab_assert(ret == 0 && pa == va);
+                        BUG_ON(ret != 0 || pa != va);
                 }
 
                 ret = unmap_range_in_pgtbl_huge(pgtbl, 0x100000000, len);
@@ -569,6 +583,7 @@ void lab2_test_page_table(void)
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
                         lab_assert(ret == -ENOMAPPING);
+                        BUG_ON(ret != -ENOMAPPING);
                 }
 
                 free_page_table(pgtbl);
