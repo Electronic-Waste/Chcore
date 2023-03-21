@@ -1,0 +1,59 @@
+#!/usr/bin/expect -f
+
+proc print {msg} {
+    puts "GRADE: $msg"
+    flush stdout
+}
+
+set timeout 10
+log_user 0
+
+spawn bash -c "make qemu"
+set qemu_pid [exp_pid -i $spawn_id]
+
+set scores {
+    {"Fault (1/3)" 0 2}
+    {"Fault (2/3)" 0 3}
+    {"Fault (3/3)" 0 15}
+}
+
+proc grade {} {
+    global scores
+    set score 0
+    foreach x $scores {
+        set name [lindex $x 0]
+        set n [lindex $x 1]
+        print "$name: $n"
+        incr score $n
+    }
+    global qemu_pid
+    exec kill -9 $qemu_pid
+    exit $score
+}
+
+trap {
+    grade
+} SIGINT
+
+expect {
+    "Test: Successfully map for pa 0" {
+        lset scores {0 1} [lindex $scores {0 2}]
+        exp_continue -continue_timer
+    }
+    "Test: Successfully map for pa not 0" {
+        lset scores {1 1} [lindex $scores {1 2}]
+        exp_continue -continue_timer
+    }
+    "handle_trans_fault: no vmr found for va 0x1!" {
+        lset scores {2 1} [lindex $scores {2 2}]
+        exp_continue -continue_timer
+    }
+    "BUG:" {
+        grade
+    }
+    timeout {
+        grade
+    }
+}
+
+grade
