@@ -20,6 +20,18 @@
 #include <mm/uaccess.h>
 #include <lib/printk.h>
 
+#define CAP
+
+#ifdef CAP
+        #define CAP_LOG(fmt, args...) \
+                do { \
+                        printk("[CAP_LOG][LINE:%d][FUNCTION:%s]" fmt "\n", \
+                                __LINE__, __FUNCTION__, ##args); \
+                } while(0);
+#else
+        #define CAP_LOG(fmt, args...) {}
+#endif
+
 /* tool functions */
 static bool is_valid_slot_id(struct slot_table *slot_table, int slot_id)
 {
@@ -71,7 +83,18 @@ int cap_group_init(struct cap_group *cap_group, unsigned int size, u64 pid)
 {
         struct slot_table *slot_table = &cap_group->slot_table;
         /* LAB 3 TODO BEGIN */
+        /* Init slot table */
+        slot_table_init(slot_table, size);
 
+        /* Init thread_list */
+        init_list_head(&cap_group->thread_list);
+
+        /* Init thread_cnt */
+        cap_group->thread_cnt = 0;
+
+        /* Init pid */
+        cap_group->pid = pid;
+        
         /* LAB 3 TODO END */
         return 0;
 }
@@ -231,8 +254,7 @@ int sys_create_cap_group(u64 pid, u64 cap_group_name, u64 name_len, u64 pcid)
         }
         /* LAB 3 TODO BEGIN */
         /* cap current cap_group */
-
-
+        new_cap_group = obj_alloc(TYPE_CAP_GROUP, sizeof(struct cap_group));
         /* LAB 3 TODO END */
 
         if (!new_cap_group) {
@@ -240,7 +262,7 @@ int sys_create_cap_group(u64 pid, u64 cap_group_name, u64 name_len, u64 pcid)
                 goto out_fail;
         }
         /* LAB 3 TODO BEGIN */
-
+        cap_group_init(new_cap_group, 2, pid);
         /* LAB 3 TODO END */
 
         cap = cap_alloc(current_cap_group, new_cap_group, 0);
@@ -259,7 +281,7 @@ int sys_create_cap_group(u64 pid, u64 cap_group_name, u64 name_len, u64 pcid)
 
         /* 2st cap is vmspace */
         /* LAB 3 TODO BEGIN */
-
+        vmspace = obj_alloc(TYPE_VMSPACE, sizeof(struct vmspace));
         /* LAB 3 TODO END */
         if (!vmspace) {
                 r = -ENOMEM;
@@ -303,23 +325,33 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         struct vmspace *vmspace;
         int slot_id;
         /* LAB 3 TODO BEGIN */
-
+        /* Create cap_group */
+        cap_group = (struct cap_group *) obj_alloc(TYPE_CAP_GROUP, sizeof(struct cap_group));
         /* LAB 3 TODO END */
         BUG_ON(!cap_group);
-        /* LAB 3 TODO BEGIN */
 
+        /* LAB 3 TODO BEGIN */
+        /* Initialize cap_group */
+        cap_group_init(cap_group, 2, ROOT_PID);
+        slot_id = cap_alloc(cap_group, cap_group, 0);
         /* LAB 3 TODO END */
         BUG_ON(slot_id != CAP_GROUP_OBJ_ID);
-        /* LAB 3 TODO BEGIN */
 
+        /* LAB 3 TODO BEGIN */
+        /* Create vmspace */
+        vmspace = obj_alloc(TYPE_VMSPACE, sizeof(struct vmspace));
         /* LAB 3 TODO END */
         BUG_ON(!vmspace);
 
         /* fixed PCID 1 for root process, PCID 0 is not used. */
         /* LAB 3 TODO BEGIN */
-
+        /* Initialize vmspace */
+        vmspace->pcid = ROOT_PCID;
+        vmspace_init(vmspace);
+        slot_id = cap_alloc(cap_group, vmspace, 0);
         /* LAB 3 TODO END */
         BUG_ON(slot_id != VMSPACE_OBJ_ID);
+
         /* Set the cap_group_name (process_name) for easing debugging */
         memset(cap_group->cap_group_name, 0, MAX_GROUP_NAME_LEN);
         if (name_len > MAX_GROUP_NAME_LEN)
