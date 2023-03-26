@@ -108,11 +108,13 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         seg_sz = elf->p_headers[i].p_memsz;
                         p_vaddr = elf->p_headers[i].p_vaddr;
                         /* LAB 3 TODO BEGIN */
-                        flags = elf->p_headers[i].p_flags;
-                        seg_map_sz = elf->p_headers[i].p_filesz;
-                        pmo_cap[i] = create_pmo(seg_sz, PMO_DATA, cap_group, &pmo);
-                        memcpy(pmo->start, bin + elf->p_headers[i].p_offset, seg_map_sz);
-                        ret = vmspace_map_range(vmspace, p_vaddr, seg_sz, flags, pmo);
+                        flags = PFLAGS2VMRFLAGS(elf->p_headers[i].p_flags);
+                        seg_map_sz = ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE) - ROUND_DOWN(p_vaddr, PAGE_SIZE);
+                        pmo_cap[i] = create_pmo(seg_map_sz, PMO_DATA, cap_group, &pmo);
+                        memcpy(phys_to_virt(pmo->start) + (p_vaddr - ROUND_DOWN(p_vaddr, PAGE_SIZE)), 
+                                bin + elf->p_headers[i].p_offset, 
+                                elf->p_headers[i].p_filesz);
+                        ret = vmspace_map_range(vmspace, p_vaddr, seg_map_sz, flags, pmo);
                         /* LAB 3 TODO END */
                         BUG_ON(ret != 0);
                 }

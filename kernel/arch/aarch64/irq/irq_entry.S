@@ -27,7 +27,7 @@
 /* See more details a1bout the bias in registers.h */
 .macro	exception_enter
 	/* LAB 3 TODO BEGIN */
-	sub	sp, sp, #16 * 17
+	sub	sp, sp, #ARCH_EXEC_CONT_SIZE
 	stp	x0, x1, [sp, #16 * 0]
 	stp	x2, x3, [sp, #16 * 1]
 	stp	x4, x5, [sp, #16 * 2]
@@ -48,15 +48,15 @@
 	mrs	x22, elr_el1
 	mrs	x23, spsr_el1
 	/* LAB 3 TODO BEGIN */
-	stp x21, x22, [sp, #16 * 15]
-	stp x23, x30, [sp, #16 * 16]
+	stp x30, x21, [sp, #16 * 15]
+	stp x22, x23, [sp, #16 * 16]
 	/* LAB 3 TODO END */
 .endm
 
 .macro	exception_exit
 	/* LAB 3 TODO BEGIN */
-	ldr x21, x22, [sp, #16 * 15]
-	ldr x23, x30, [sp, #16 * 16]
+	ldp x22, x23, [sp, #16 * 16]
+	ldp x30, x21, [sp, #16 * 15]
 	/* LAB 3 TODO END */
 	msr	sp_el0, x21
 	msr	elr_el1, x22
@@ -77,7 +77,7 @@
 	ldp x24, x25, [sp, #16 * 12]
 	ldp x26, x27, [sp, #16 * 13]
 	ldp x28, x29, [sp, #16 * 14]
-	add	sp, sp, #16 * 17
+	add	sp, sp, #ARCH_EXEC_CONT_SIZE
 	/* LAB 3 TODO END */
 	eret
 .endm
