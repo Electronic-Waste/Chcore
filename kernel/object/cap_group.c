@@ -153,7 +153,7 @@ int alloc_slot_id(struct cap_group *cap_group)
         BUG_ON(empty_idx < 0 || empty_idx >= bmp_size);
 
         set_bit(empty_idx, slot_table->slots_bmp);
-        if (slot_table->full_slots_bmp[empty_idx / BITS_PER_LONG]
+        if (slot_table->slots_bmp[empty_idx / BITS_PER_LONG]
             == ~((unsigned long)0))
                 set_bit(empty_idx / BITS_PER_LONG, slot_table->full_slots_bmp);
 
