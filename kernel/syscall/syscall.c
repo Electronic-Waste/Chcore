@@ -35,7 +35,7 @@ void sys_null_placeholder(long arg)
 void sys_putc(char ch)
 {
         /* LAB 3 TODO BEGIN */
-
+        
         /* LAB 3 TODO END */
 }
 
