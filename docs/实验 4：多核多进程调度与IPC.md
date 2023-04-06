@@ -48,7 +48,7 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 4. `kernel/arch/aarch64/irq/irq_entry.c`中的`handle_entry_c`：在该异常处理函数的第一行获取大内核锁。因为在内核态下也可能会发生异常，所以如果异常是在内核中捕获的，则不应获取大内核锁。
 5. `kernel/arch/aarch64/irq/irq_entry.c`中的`handle_irq`：在中断处理函数的第一行获取大内核锁。与`handle_entry_c`类似，如果是内核异常，则不应获取该锁。
 
-> **练习4：**本练习分为以下几个步骤：
+> 练习题 4：本练习分为以下几个步骤：
 >
 > 1. 请熟悉排号锁的基本算法，并在`kernel/arch/aarch64/sync/ticket.c`中完成`unlock`和`is_locked`的代码。
 > 2. 在`kernel/arch/aarch64/sync/ticket.c`中实现`kernel_lock_init`、`lock_kernel`和`unlock_kernel`。
@@ -65,7 +65,7 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 > CHCORE_KERNEL_TEST:BOOL=ON
 > ```
 
-> 思考题5：在`el0_syscall`调用`lock_kernel`时，在栈上保存了寄存器的值。这是为了避免调用`lock_kernel`时修改这些寄存器。在`unlock_kernel`时，是否需要将寄存器的值保存到栈中，试分析其原因。
+> 思考题 5：在`el0_syscall`调用`lock_kernel`时，在栈上保存了寄存器的值。这是为了避免调用`lock_kernel`时修改这些寄存器。在`unlock_kernel`时，是否需要将寄存器的值保存到栈中，试分析其原因。
 
 在课本中，我们还介绍了由于嵌套中断可能会导致死锁，其必须使用可重入锁来解决。为简单起见，ChCore实验不考虑可重入锁。在内核中，我们关闭了中断。
 这一功能是在硬件的帮助下实现的。
@@ -105,7 +105,7 @@ ChCore中大内核锁共有三个接口进行封装：初始化大内核锁的`k
 
 当线程退出时（即`thread_exit_state`被设置为`TE_EXITING`时），其也会调用`rr_sched`来调度到其他线程执行。因此，当判断到当前的线程正在退出时，`rr_sched`需要更新线程的状态`state`为`TS_EXIT`以及其退出状态`thread_exit_state`为`TE_EXITED`。此外，该线程也不应加入到等待队列中。
 
-> 思考题6：为何`idle_threads`不会加入到等待队列中？请分析其原因？
+> 思考题 6：为何`idle_threads`不会加入到等待队列中？请分析其原因？
 
 `rr_sched_init`用于初始化调度器。它只能在内核初始化流程中被调用一次。由主CPU负责初始化`rr_ready_queue_meta`和`idle_threads`中的所有条目。
 
