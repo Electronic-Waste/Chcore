@@ -202,7 +202,7 @@ el0_syscall:
 	stp	x14, x15, [sp, #16 * 7]
 	
 	/* LAB 4 TODO BEGIN */
-
+	bl lock_kernel
 	/* LAB 4 TODO END */
 
 	ldp	x0, x1, [sp, #16 * 0]
