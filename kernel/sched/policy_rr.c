@@ -26,6 +26,18 @@
 #include <irq/irq.h>
 #include <sched/context.h>
 
+#define RRx
+
+#ifdef RR
+        #define RR_LOG(fmt, args...) \
+                do { \
+                        printk("[RR_LOG][LINE:%d][FUNCTION:%s][CPU: %d]" fmt "\n", \
+                                __LINE__, __FUNCTION__, smp_get_cpu_id(), ##args); \
+                } while(0);
+#else
+        #define RR_LOG(fmt, args...) {}
+#endif
+
 /* in arch/sched/idle.S */
 void idle_thread_routine(void);
 
@@ -61,7 +73,32 @@ struct thread idle_threads[PLAT_CPU_NUM];
 int rr_sched_enqueue(struct thread *thread)
 {
         /* LAB 4 TODO BEGIN */
-
+        /* If thread or thread_ctx is NULL, return -1 */
+        if (thread == NULL || thread->thread_ctx == NULL) {
+                RR_LOG("thread or thread_ctx is NULL");
+                return -EINVAL;
+        }
+        /* If thread's state is TS_READY, return -1 */
+        if (thread->thread_ctx->state == TS_READY) {
+                RR_LOG("thread_ctx is TS_READY");
+                return -EINVAL;
+        }
+        /* If the thread is IDLE thread, do nothing */
+        if (thread->thread_ctx->type == TYPE_IDLE) {
+                RR_LOG("Warning: IDLE thread!");
+                return 0;
+        }
+        /* Initialize affinity */
+        s32 cpuid = smp_get_cpu_id();
+        // s32 aff = thread->thread_ctx->affinity;
+        // BUG_ON(aff >= PLAT_CPU_NUM);
+        // aff = (aff == NO_AFF) ? smp_get_cpu_id() : aff;
+        /* Set thread state to TS_READY & Add to ready queue */
+        thread->thread_ctx->state = TS_READY;
+        thread->thread_ctx->cpuid = cpuid;
+        list_append(&thread->ready_queue_node, &rr_ready_queue_meta[cpuid].queue_head);
+        rr_ready_queue_meta[cpuid].queue_len++;
+        // RR_LOG("queue_len: %d", rr_ready_queue_meta[cpuid].queue_len);
         /* LAB 4 TODO END */
         return 0;
 }
@@ -75,7 +112,28 @@ int rr_sched_enqueue(struct thread *thread)
 int rr_sched_dequeue(struct thread *thread)
 {
         /* LAB 4 TODO BEGIN */
-
+        /* If thread is NULL, report error */
+        if (thread == NULL || thread->thread_ctx == NULL) {
+                RR_LOG("Error: thread is NULL");
+                return -EINVAL;
+        }
+        /* If the thread is IDLE thread, report error */
+        if (thread->thread_ctx->type == TYPE_IDLE) {
+                RR_LOG("Error: IDLE thread in ready queue!")
+                return -EINVAL;
+        }
+        /* If the thread's state is not TS_READY, report error */
+        if (thread->thread_ctx->state != TS_READY) {
+                RR_LOG("Error: Thread's state should be TS_READY");
+                return -EINVAL;
+        }
+        /* Delete the thread from ready queue & set thread state and cpuid */
+        s32 cpuid = smp_get_cpu_id();
+        list_del(&thread->ready_queue_node);
+        thread->thread_ctx->state = TS_INTER;
+        thread->thread_ctx->cpuid = cpuid;
+        rr_ready_queue_meta[cpuid].queue_len--;
+        // RR_LOG("queue_len: %d", rr_ready_queue_meta[cpuid].queue_len);
         /* LAB 4 TODO END */
         return 0;
 }
@@ -91,7 +149,17 @@ struct thread *rr_sched_choose_thread(void)
 {
         struct thread *thread = NULL;
         /* LAB 4 TODO BEGIN */
-
+        /* if queue len is 0, return IDLE thread */
+        if (rr_ready_queue_meta[smp_get_cpu_id()].queue_len == 0) {
+                thread = &idle_threads[smp_get_cpu_id()];
+                RR_LOG("return IDLE thread");
+        }
+        /* else dequeue the first thread in ready queue */
+        else {
+                struct list_head *choose_thread_node = rr_ready_queue_meta[smp_get_cpu_id()].queue_head.next;
+                thread = list_entry(choose_thread_node, struct thread, ready_queue_node);
+                rr_sched_dequeue(thread);
+        }
         /* LAB 4 TODO END */
         return thread;
 }
@@ -125,7 +193,23 @@ static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
 int rr_sched(void)
 {
         /* LAB 4 TODO BEGIN */
-
+        struct thread *thread = NULL;
+        
+        /* If current_thread is null, do nothing */
+        if (current_thread == NULL) {
+                switch_to_thread(rr_sched_choose_thread());
+        }
+        /* Else if current_thread is exiting, set its state, thread_exit_state and don't put it into ready queue */
+        else if (current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
+                current_thread->thread_ctx->state = TS_EXIT;
+                current_thread->thread_ctx->thread_exit_state = TE_EXITED;
+                switch_to_thread(rr_sched_choose_thread());
+        }
+        /* Else if current_thread is running, enqueue current_thread to ready queue */
+        else {
+                rr_sched_enqueue(current_thread);
+                switch_to_thread(rr_sched_choose_thread());
+        }
         /* LAB 4 TODO END */
 
         return 0;
