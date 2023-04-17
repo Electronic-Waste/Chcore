@@ -165,7 +165,10 @@ u64 switch_context(void)
 void sched_handle_timer_irq(void)
 {
         /* LAB 4 TODO BEGIN */
-        
+        if (current_thread != NULL && current_thread->thread_ctx->sc != NULL
+                && current_thread->thread_ctx->sc->budget != 0) {
+                current_thread->thread_ctx->sc->budget--;
+        }
         /* LAB 4 TODO END */
 }
 

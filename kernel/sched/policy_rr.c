@@ -149,8 +149,17 @@ struct thread *rr_sched_choose_thread(void)
 {
         struct thread *thread = NULL;
         /* LAB 4 TODO BEGIN */
-        /* if queue len is 0, return IDLE thread */
-        if (rr_ready_queue_meta[smp_get_cpu_id()].queue_len == 0) {
+        /* if budget unequals to 0 and is not a IDLE/exiting thread, we do not change current thread */
+        if (current_thread != NULL &&
+                current_thread->thread_ctx != NULL &&
+                current_thread->thread_ctx->type != TYPE_IDLE &&
+                current_thread->thread_ctx->state != TS_EXIT &&
+                current_thread->thread_ctx->state != TS_READY &&
+                current_thread->thread_ctx->sc->budget != 0) {
+                thread = current_thread;
+        }
+        /* else if queue len is 0, return IDLE thread */
+        else if (rr_ready_queue_meta[smp_get_cpu_id()].queue_len == 0) {
                 thread = &idle_threads[smp_get_cpu_id()];
                 RR_LOG("return IDLE thread");
         }
@@ -171,7 +180,8 @@ struct thread *rr_sched_choose_thread(void)
 static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
 {
         /* LAB 4 TODO BEGIN */
-
+        BUG_ON(target->thread_ctx->sc->budget != 0);
+        target->thread_ctx->sc->budget = budget;
         /* LAB 4 TODO END */
 }
 
@@ -209,8 +219,10 @@ int rr_sched(void)
                 current_thread->thread_ctx->thread_exit_state == TE_EXITED;
         }
         /* Else if current_thread isn't waiting, enqueue current_thread to ready queue */
-        else if (current_thread->thread_ctx->state != TS_WAITING) {
+        else if (current_thread->thread_ctx->state != TS_WAITING &&
+                current_thread->thread_ctx->sc->budget == 0) {
                 rr_sched_enqueue(current_thread);
+                rr_sched_refill_budget(current_thread, DEFAULT_BUDGET);
         }
 
         switch_to_thread(rr_sched_choose_thread());
