@@ -88,11 +88,14 @@ int rr_sched_enqueue(struct thread *thread)
                 RR_LOG("Warning: IDLE thread!");
                 return 0;
         }
-        /* Initialize affinity */
-        s32 cpuid = smp_get_cpu_id();
-        // s32 aff = thread->thread_ctx->affinity;
-        // BUG_ON(aff >= PLAT_CPU_NUM);
-        // aff = (aff == NO_AFF) ? smp_get_cpu_id() : aff;
+        /* Check and initialize affinity */
+        s32 aff = thread->thread_ctx->affinity;
+        if (aff >= PLAT_CPU_NUM) {
+                RR_LOG("Invalid affinity");
+                return -EINVAL;
+        }
+        s32 cpuid = (aff == NO_AFF) ? smp_get_cpu_id() : aff;
+
         /* Set thread state to TS_READY & Add to ready queue */
         thread->thread_ctx->state = TS_READY;
         thread->thread_ctx->cpuid = cpuid;
@@ -127,6 +130,11 @@ int rr_sched_dequeue(struct thread *thread)
                 RR_LOG("Error: Thread's state should be TS_READY");
                 return -EINVAL;
         }
+        /* If the thread's affinity is invalid, report error */
+        if (thread->thread_ctx->affinity >= PLAT_CPU_NUM) {
+                RR_LOG("Error: Invalid affinity");
+                return -EINVAL;
+        }
         /* Delete the thread from ready queue & set thread state and cpuid */
         s32 cpuid = smp_get_cpu_id();
         list_del(&thread->ready_queue_node);
@@ -149,17 +157,8 @@ struct thread *rr_sched_choose_thread(void)
 {
         struct thread *thread = NULL;
         /* LAB 4 TODO BEGIN */
-        /* if budget unequals to 0 and is not a IDLE/exiting thread, we do not change current thread */
-        if (current_thread != NULL &&
-                current_thread->thread_ctx != NULL &&
-                current_thread->thread_ctx->type != TYPE_IDLE &&
-                current_thread->thread_ctx->state != TS_EXIT &&
-                current_thread->thread_ctx->state != TS_READY &&
-                current_thread->thread_ctx->sc->budget != 0) {
-                thread = current_thread;
-        }
-        /* else if queue len is 0, return IDLE thread */
-        else if (rr_ready_queue_meta[smp_get_cpu_id()].queue_len == 0) {
+        /* if queue len is 0, return IDLE thread */
+        if (rr_ready_queue_meta[smp_get_cpu_id()].queue_len == 0) {
                 thread = &idle_threads[smp_get_cpu_id()];
                 RR_LOG("return IDLE thread");
         }
@@ -180,7 +179,7 @@ struct thread *rr_sched_choose_thread(void)
 static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
 {
         /* LAB 4 TODO BEGIN */
-        BUG_ON(target->thread_ctx->sc->budget != 0);
+        // BUG_ON(target->thread_ctx->sc->budget != 0);
         target->thread_ctx->sc->budget = budget;
         /* LAB 4 TODO END */
 }
@@ -209,7 +208,7 @@ int rr_sched(void)
         //         current_thread->thread_ctx->thread_exit_state = TE_EXITED;
         //         switch_to_thread(rr_sched_choose_thread());
         // }
-
+        struct thread *thread = NULL;
         /* Some condition like `current_thread == NULL`, we don't need to do anything */
         if (current_thread == NULL ||
                 current_thread->thread_ctx == NULL) {}
@@ -219,10 +218,16 @@ int rr_sched(void)
                 current_thread->thread_ctx->thread_exit_state == TE_EXITED;
         }
         /* Else if current_thread isn't waiting, enqueue current_thread to ready queue */
-        else if (current_thread->thread_ctx->state != TS_WAITING &&
-                current_thread->thread_ctx->sc->budget == 0) {
-                rr_sched_enqueue(current_thread);
-                rr_sched_refill_budget(current_thread, DEFAULT_BUDGET);
+        else if (current_thread->thread_ctx->state != TS_WAITING) {
+                /* If budget != 0 & aff == cpuid, do not change current_thread */
+                if (current_thread->thread_ctx->sc->budget != 0 &&
+                        current_thread->thread_ctx->affinity == smp_get_cpu_id()) {
+                        return switch_to_thread(current_thread);
+                }
+                else {
+                        BUG_ON(rr_sched_enqueue(current_thread));
+                        rr_sched_refill_budget(current_thread, DEFAULT_BUDGET);
+                }
         }
 
         switch_to_thread(rr_sched_choose_thread());
