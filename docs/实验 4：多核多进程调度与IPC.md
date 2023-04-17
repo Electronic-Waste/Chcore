@@ -276,7 +276,7 @@ ChCore的IPC接口不是传统的`send/recv`接口。其更像客户端/服务�
 
 ### ChCore IPC具体流程
 
-为了实现ChCore IPC的功能，首先需要在Client与Server端创建起一个一对一的IPC Connection。该Connection保存了IPC Server中处理IPC请求的线程（即下图中IPC handler Thread）、Client与Server的共享内存（用于存放IPC通讯的内容）。同一时刻，一个Connection只能有一个Client接入，并使用该Connection切换到Server的处理流程。ChCore提供了一系列机制，用于创建Connection以及创建每个Connection对应的Server处理线程。下面将以具体的IPC注册到调用的流程，详细介绍ChCore的IPC机制：
+为了实现ChCore IPC的功能，首先需要在Client与Server端创建起一个一对一的IPC Connection。该Connection保存了IPC Server中处理IPC请求的线程（即图中IPC handler Thread）、Client与Server的共享内存（用于存放IPC通讯的内容）。同一时刻，一个Connection只能有一个Client接入，并使用该Connection切换到Server的处理流程。ChCore提供了一系列机制，用于创建Connection以及创建每个Connection对应的Server处理线程。下面将以具体的IPC注册到调用的流程，详细介绍ChCore的IPC机制：
 
 1. IPC服务器调用`ipc_register_server`（`libchcore/src/ipc/ipc.c`中）来注册自己为IPC的服务器端。其主要包含以下内容：
 

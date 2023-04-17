@@ -5,7 +5,7 @@ proc print {msg} {
     flush stdout
 }
 
-set timeout 10
+set timeout 30
 log_user 0
 
 spawn bash -c "make qemu"

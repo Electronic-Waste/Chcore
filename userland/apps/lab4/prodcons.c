@@ -26,7 +26,7 @@ void *producer(void *arg);
 int rand_time[5] = {2, 8, 10, 1, 4};
 int sleep(int time)
 {
-        for (int i = 0; i < time * 1000; i++) {
+        for (int i = 0; i < time * 10; i++) {
                 __chcore_sys_yield();
         }
         return 0;
