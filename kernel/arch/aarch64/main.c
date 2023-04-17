@@ -136,5 +136,6 @@ void secondary_start(void)
 
         lock_kernel();
         sched();
+
         eret_to_thread(switch_context());
 }

@@ -158,7 +158,7 @@ struct thread *rr_sched_choose_thread(void)
         else {
                 struct list_head *choose_thread_node = rr_ready_queue_meta[smp_get_cpu_id()].queue_head.next;
                 thread = list_entry(choose_thread_node, struct thread, ready_queue_node);
-                rr_sched_dequeue(thread);
+                BUG_ON(rr_sched_dequeue(thread));
         }
         /* LAB 4 TODO END */
         return thread;
@@ -193,23 +193,27 @@ static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
 int rr_sched(void)
 {
         /* LAB 4 TODO BEGIN */
-        struct thread *thread = NULL;
-        
-        /* If current_thread is null, do nothing */
-        if (current_thread == NULL) {
-                switch_to_thread(rr_sched_choose_thread());
-        }
+        // /* Else if current_thread is exiting, set its state, thread_exit_state and don't put it into ready queue */
+        // else if (current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
+        //         current_thread->thread_ctx->state = TS_EXIT;
+        //         current_thread->thread_ctx->thread_exit_state = TE_EXITED;
+        //         switch_to_thread(rr_sched_choose_thread());
+        // }
+
+        /* Some condition like `current_thread == NULL`, we don't need to do anything */
+        if (current_thread == NULL ||
+                current_thread->thread_ctx == NULL) {}
         /* Else if current_thread is exiting, set its state, thread_exit_state and don't put it into ready queue */
         else if (current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
-                current_thread->thread_ctx->state = TS_EXIT;
-                current_thread->thread_ctx->thread_exit_state = TE_EXITED;
-                switch_to_thread(rr_sched_choose_thread());
+                current_thread->thread_ctx->state == TS_EXIT;
+                current_thread->thread_ctx->thread_exit_state == TE_EXITED;
         }
-        /* Else if current_thread is running, enqueue current_thread to ready queue */
-        else {
+        /* Else if current_thread isn't waiting, enqueue current_thread to ready queue */
+        else if (current_thread->thread_ctx->state != TS_WAITING) {
                 rr_sched_enqueue(current_thread);
-                switch_to_thread(rr_sched_choose_thread());
         }
+
+        switch_to_thread(rr_sched_choose_thread());
         /* LAB 4 TODO END */
 
         return 0;

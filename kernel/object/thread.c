@@ -405,8 +405,8 @@ void sys_thread_exit(void)
         printk("\nBack to kernel.\n");
 #endif
         /* LAB 3 TODO BEGIN */
-        current_thread->thread_ctx->thread_exit_state = TE_EXITED;
-        thread_deinit(current_thread);
+        current_thread->thread_ctx->thread_exit_state = TE_EXITING;
+        // thread_deinit(current_thread);
         /* LAB 3 TODO END */
         /* Reschedule */
         sched();
