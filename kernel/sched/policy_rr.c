@@ -202,12 +202,6 @@ static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
 int rr_sched(void)
 {
         /* LAB 4 TODO BEGIN */
-        // /* Else if current_thread is exiting, set its state, thread_exit_state and don't put it into ready queue */
-        // else if (current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
-        //         current_thread->thread_ctx->state = TS_EXIT;
-        //         current_thread->thread_ctx->thread_exit_state = TE_EXITED;
-        //         switch_to_thread(rr_sched_choose_thread());
-        // }
         struct thread *thread = NULL;
         /* Some condition like `current_thread == NULL`, we don't need to do anything */
         if (current_thread == NULL ||
