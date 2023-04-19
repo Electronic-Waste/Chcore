@@ -47,6 +47,7 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
                 current_thread->thread_ctx->state = TS_WAITING;
                 list_append(&current_thread->sem_queue_node, &sem->waiting_threads);
                 sem->waiting_threads_count++;
+                // printk("wait_sem: waiting_threads_count is %d\n", sem->waiting_threads_count);
 
                 /* Set return value of current thread */
                 current_thread->thread_ctx->ec.reg[X0] = 0;
@@ -57,6 +58,7 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
                 sched();
                 eret_to_thread(switch_context());
         }
+        // printk("wait_sem: sem_count is %d\n", sem->sem_count);
         /* LAB 4 TODO END */
         return ret;
 }
@@ -71,10 +73,19 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
 s32 signal_sem(struct semaphore *sem)
 {
         /* LAB 4 TODO BEGIN */
-        struct list_head *wakeup_thread_node = sem->waiting_threads.next;
-        struct thread *wakeup_thread = list_entry(wakeup_thread_node, struct thread, sem_queue_node);
-        list_del(wakeup_thread_node);
-        sched_enqueue(wakeup_thread);
+        /* No waiting threads: just update sem_count */
+        if (sem->waiting_threads_count == 0) {
+                sem->sem_count++;
+                return -1;
+        }
+        /* There exist waiting threads: do not update sem_count, wake up waiting threads */
+        else {
+                struct list_head *wakeup_thread_node = sem->waiting_threads.next;
+                struct thread *wakeup_thread = list_entry(wakeup_thread_node, struct thread, sem_queue_node);
+                sem->waiting_threads_count--;
+                list_del(wakeup_thread_node);
+                sched_enqueue(wakeup_thread);
+        }
         /* LAB 4 TODO END */
         return 0;
 }
