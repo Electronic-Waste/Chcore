@@ -76,7 +76,6 @@ s32 signal_sem(struct semaphore *sem)
         /* No waiting threads: just update sem_count */
         if (sem->waiting_threads_count == 0) {
                 sem->sem_count++;
-                return -1;
         }
         /* There exist waiting threads: do not update sem_count, wake up waiting threads */
         else {

@@ -101,6 +101,7 @@ int rr_sched_enqueue(struct thread *thread)
         thread->thread_ctx->cpuid = cpuid;
         list_append(&thread->ready_queue_node, &rr_ready_queue_meta[cpuid].queue_head);
         rr_ready_queue_meta[cpuid].queue_len++;
+        // printk("queue_len: %d", rr_ready_queue_meta[cpuid].queue_len);
         // RR_LOG("queue_len: %d", rr_ready_queue_meta[cpuid].queue_len);
         /* LAB 4 TODO END */
         return 0;
@@ -141,6 +142,7 @@ int rr_sched_dequeue(struct thread *thread)
         thread->thread_ctx->state = TS_INTER;
         thread->thread_ctx->cpuid = cpuid;
         rr_ready_queue_meta[cpuid].queue_len--;
+        // printk("queue_len: %d", rr_ready_queue_meta[cpuid].queue_len);
         // RR_LOG("queue_len: %d", rr_ready_queue_meta[cpuid].queue_len);
         /* LAB 4 TODO END */
         return 0;
@@ -215,7 +217,8 @@ int rr_sched(void)
         else if (current_thread->thread_ctx->state != TS_WAITING) {
                 /* If budget != 0 & aff == cpuid, do not change current_thread */
                 if (current_thread->thread_ctx->sc->budget != 0 &&
-                        current_thread->thread_ctx->affinity == smp_get_cpu_id()) {
+                        (current_thread->thread_ctx->affinity == smp_get_cpu_id() ||
+                                current_thread->thread_ctx->affinity == -1)) {
                         return switch_to_thread(current_thread);
                 }
                 else {
