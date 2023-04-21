@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdio.h>
 
+#include "proc.h"
 #include "spawn.h"
 #include "elf.h"
 #include "launch.h"
@@ -115,14 +116,28 @@ static int parse_elf_from_binary(const char *binary, struct user_elf *user_elf)
 }
 
 /* Symbols defined in asm code generated from incbin.tpl.S */
+extern const char __binary_fsm_elf_start;
+extern size_t __binary_fsm_elf_size;
+extern const char __binary_tmpfs_elf_start;
+extern size_t __binary_tmpfs_elf_size;
 extern const char __binary_userproc_elf_start;
 extern size_t __binary_userproc_elf_size;
 extern const char __binary_ipc_client_elf_start;
 extern size_t __binary_ipc_client_elf_size;
+extern const char __binary_shell_elf_start;
+extern size_t __binary_shell_elf_size;
+extern const char __binary_fakefs_elf_start;
+extern size_t __binary_fakefs_elf_size;
+
+
 
 enum incbin_elf_id {
+        INCBIN_ELF_FSM,
+        INCBIN_ELF_TMPFS,
         INCBIN_ELF_USER, /* Lab4 specific */
         INCBIN_ELF_IPC_CLIENT, /* Lab4 specific */
+        INCBIN_ELF_SHELL, /* Lab4 specific */
+        INCBIN_ELF_FAKEFS, /* Lab4 specific */
         INCBIN_ELF_COUNT,
 };
 
@@ -130,6 +145,13 @@ int readelf_from_incbin(enum incbin_elf_id elf_id, struct user_elf *user_elf)
 {
         int ret;
         switch (elf_id) {
+        case INCBIN_ELF_FSM:
+                ret = parse_elf_from_binary(&__binary_fsm_elf_start, user_elf);
+                break;
+        case INCBIN_ELF_TMPFS:
+                ret = parse_elf_from_binary(&__binary_tmpfs_elf_start,
+                                            user_elf);
+                break;
         /* Lab4 specific */
         case INCBIN_ELF_USER:
                 ret = parse_elf_from_binary(&__binary_userproc_elf_start,
@@ -139,6 +161,15 @@ int readelf_from_incbin(enum incbin_elf_id elf_id, struct user_elf *user_elf)
                 ret = parse_elf_from_binary(&__binary_ipc_client_elf_start,
                                             user_elf);
                 break;
+        case INCBIN_ELF_SHELL:
+                ret = parse_elf_from_binary(&__binary_shell_elf_start,
+                                            user_elf);
+                break;
+        case INCBIN_ELF_FAKEFS:
+                ret = parse_elf_from_binary(&__binary_fakefs_elf_start,
+                                            user_elf);
+                break;
+ 
         /* Lab4 End */
         default:
                 chcore_warn("no such elf binary included");
@@ -148,10 +179,18 @@ int readelf_from_incbin(enum incbin_elf_id elf_id, struct user_elf *user_elf)
         return ret;
 }
 
+int read_file_from_tfs(const char* path, char* buf);
+int get_file_size_from_tfs(const char* path);
+
 int readelf_from_fs(const char *filename, struct user_elf *user_elf)
 {
-        chcore_warn("TODO: start elf from fs is not supported now\n");
-        return -ESUPPORT;
+        int file_size = get_file_size_from_tfs(filename);
+        char* buf = (char*)malloc(file_size);
+
+        read_file_from_tfs (filename, buf);
+        // read_file_from_fsm (filename, buf);
+        int ret = parse_elf_from_binary(buf,user_elf);
+        return ret;
 }
 
 static inline int alloc_pcid(void)
@@ -168,8 +207,6 @@ static inline int alloc_pcid(void)
 static inline int alloc_pid(void)
 {
         static struct id_manager pid_mgr;
-#define PID_MAX (1 << 20)
-#define PID_MIN 10 /* reserved */
         if (!id_manager_initialized(&pid_mgr)) {
                 init_id_manager(&pid_mgr, PID_MAX, PID_MIN);
         }
@@ -183,7 +220,11 @@ int spawn(const char *filename, int *new_thread_cap)
         size_t len;
         char *argv[1];
         /* List system server here */
-        int system_server_caps[] = {__chcore_get_procm_cap()};
+        int system_server_caps[] = {
+                __chcore_get_procm_cap(),
+                __chcore_get_fsm_cap(),
+                __chcore_get_tmpfs_cap(),
+        };
 
         struct launch_process_args lp_args;
 
@@ -193,9 +234,16 @@ int spawn(const char *filename, int *new_thread_cap)
         } else if (strcmp(filename, "/ipc_client.bin") == 0) {
                 ret = readelf_from_incbin(INCBIN_ELF_IPC_CLIENT, &user_elf);
                 /* Lab 4 specific code ends */
+        } else if (strcmp(filename, "/fsm.srv") == 0) {
+                ret = readelf_from_incbin(INCBIN_ELF_FSM, &user_elf);
+        } else if (strcmp(filename, "/tmpfs.srv") == 0) {
+                ret = readelf_from_incbin(INCBIN_ELF_TMPFS, &user_elf);
+        } else if (strcmp(filename, "/shell.srv") == 0) {
+                ret = readelf_from_incbin(INCBIN_ELF_SHELL, &user_elf);
+        } else if (strcmp(filename, "/fakefs.srv") == 0) {
+                ret = readelf_from_incbin(INCBIN_ELF_FAKEFS, &user_elf);
         } else {
-                printf("Procm cannot find %s!\n", filename);
-                return -EINVAL;
+                ret = readelf_from_fs(filename, &user_elf);
         }
 
         if (ret < 0) {
@@ -217,6 +265,12 @@ int spawn(const char *filename, int *new_thread_cap)
         lp_args.pcid = alloc_pcid();
         lp_args.pid = alloc_pid();
 
+        /* Update procm's own proc list */
+        ret = internal_init_proc(lp_args.pid);
+        if (ret < 0) {
+                chcore_warn("failed to init proc\n");
+                return ret;
+        }
         ret = launch_process(&lp_args);
         return !ret ? lp_args.pid : ret;
 }

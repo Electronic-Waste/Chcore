@@ -1,37 +1,25 @@
 /*
  * Copyright (c) 2022 Institute of Parallel And Distributed Systems (IPADS)
  * ChCore-Lab is licensed under the Mulan PSL v1.
- * You can use this software according to the terms and conditions of the Mulan
- * PSL v1. You may obtain a copy of Mulan PSL v1 at:
+ * You can use this software according to the terms and conditions of the Mulan PSL v1.
+ * You may obtain a copy of Mulan PSL v1 at:
  *     http://license.coscl.org.cn/MulanPSL
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
- * KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
- * NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE. See the
- * Mulan PSL v1 for more details.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ * PURPOSE.
+ * See the Mulan PSL v1 for more details.
  */
 
 #include <chcore/procm.h>
-#include <chcore/ipc.h>
 #include <chcore/assert.h>
-#include <chcore/internal/server_caps.h>
 #include <string.h>
+#include <stdio.h>
 
-static struct ipc_struct *procm_ipc_struct = NULL;
-
-static void connect_procm_server(void)
-{
-        int procm_cap = __chcore_get_procm_cap();
-        chcore_assert(procm_cap >= 0);
-        procm_ipc_struct = ipc_register_client(procm_cap);
-        chcore_assert(procm_ipc_struct);
-}
+#include "server.h"
 
 int chcore_procm_spawn(const char *path, int *mt_cap_out)
 {
-        if (!procm_ipc_struct) {
-                connect_procm_server();
-        }
-
+        struct ipc_struct *procm_ipc_struct = get_procm_server();
         struct ipc_msg *ipc_msg = ipc_create_msg(
                 procm_ipc_struct, sizeof(struct procm_ipc_data), 0);
         chcore_assert(ipc_msg);

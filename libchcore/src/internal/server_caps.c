@@ -14,13 +14,35 @@
 
 /* Defined in __libchcore_init.c */
 extern int __chcore_procm_cap;
+extern int __chcore_fsm_cap;
+extern int __chcore_tmpfs_cap;
 
 int __chcore_get_procm_cap(void)
 {
         return __chcore_procm_cap;
 }
 
+int __chcore_get_fsm_cap(void)
+{
+        return __chcore_fsm_cap;
+}
+
+int __chcore_get_tmpfs_cap(void)
+{
+        return __chcore_tmpfs_cap;
+}
+
 void __chcore_set_procm_cap(int cap)
 {
         __chcore_procm_cap = cap;
+}
+
+void __chcore_set_fsm_cap(int cap)
+{
+        __chcore_fsm_cap = cap;
+}
+
+void __chcore_set_tmpfs_cap(int cap)
+{
+        __chcore_tmpfs_cap = cap;
 }

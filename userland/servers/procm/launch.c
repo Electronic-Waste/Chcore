@@ -272,7 +272,7 @@ int launch_process(struct launch_process_args *lp_args)
         }
 
         /**
-         * Hints: refer to <defs.h>
+         * Hints: refer to <mem_layout_arch.h>
          * For stack_top, what's the virtual address of top of the main
          * thread's stack?
          *

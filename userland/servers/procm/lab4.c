@@ -21,6 +21,7 @@
 #include <chcore/procm.h>
 #include <chcore/internal/idman.h>
 #include <chcore/internal/server_caps.h>
+#include <chcore/fsm.h>
 #include <chcore/memory.h>
 
 #include "elf.h"

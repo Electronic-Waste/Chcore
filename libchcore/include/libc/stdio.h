@@ -13,6 +13,16 @@
 #pragma once
 
 #include <chcore/console.h>
+#include <FILE.h>
 
 #define printf chcore_console_printf
 #define cgetc  chcore_console_getc
+#define putc chcore_console_putc
+#define getc chcore_console_getc
+
+FILE *fopen(const char * filename, const char * mode);
+unsigned long fwrite(const void * src, unsigned long  size, unsigned long nmemb, FILE * f);
+unsigned long fread(void * destv, unsigned long size, unsigned long nmemb, FILE * f);
+int fclose(FILE *f);
+int fscanf(FILE * f, const char * fmt, ...);
+int fprintf(FILE * f, const char * fmt, ...);
