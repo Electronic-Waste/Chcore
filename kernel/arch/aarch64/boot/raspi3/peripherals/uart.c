@@ -77,6 +77,9 @@ static void early_uart_send(unsigned int c)
 void uart_send_string(char *str)
 {
         /* LAB 1 TODO 3 BEGIN */
-
+        early_uart_init();      // Initialize uart first
+        int offset = 0;
+        while (str[offset] != '\0') 
+                early_uart_send(str[offset++]);
         /* LAB 1 TODO 3 END */
 }
