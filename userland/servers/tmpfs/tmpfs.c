@@ -152,7 +152,19 @@ static int tfs_mknod(struct inode *dir, const char *name, size_t len, int mkdir)
 		return -ENOENT;
 	}
 	/* LAB 5 TODO BEGIN */
+	/* Create inode accorind to flag: mkdir */
+	inode = (mkdir == 0) ? new_reg() : new_dir();
+	if (inode->type == 0) {
+		WARN("inode error!");
+		return -ENOENT;
+	}
+	inode->size = len;
 
+	/* Create dentry */
+	size_t name_len = 0;
+	while (name[name_len] != '\0') name_len++;
+	dent = new_dent(inode, name, name_len);
+	htable_add(dir, dent->name.hash, &dent->node);
 	/* LAB 5 TODO END */
 
 	return 0;
@@ -222,7 +234,29 @@ int tfs_namex(struct inode **dirat, const char **name, int mkdir_p)
 	// `tfs_lookup` and `tfs_mkdir` are useful here
 
 	/* LAB 5 TODO BEGIN */
-
+	while (true) {
+		/* Get name between two '/' */
+		i = 0;
+		while (*(name + i) != "/") i++;
+		memcpy(buff, *(name), i);
+		/* Look up dentry in parent dir 'dirat' */
+		dent = tfs_lookup(*dirat, buff, i);
+		if (dent == NULL) {
+			if (!mkdir_p) 
+				return -ENOENT;
+			else {
+				tfs_mkdir(*dirat, buff, i);
+				continue;
+			}
+		}
+		/* Check if reach the end */
+		if (*(name + i) == '\0') 
+			return 0;
+		else {
+			*name += i + 1;
+			*dirat = dent->inode;
+		}
+	}
 	/* LAB 5 TODO END */
 
 	/* we will never reach here? */
@@ -300,7 +334,22 @@ ssize_t tfs_file_write(struct inode * inode, off_t offset, const char *data,
 	void *page;
 
 	/* LAB 5 TODO BEGIN */
-
+	while (size > 0) {
+		page_no = cur_off / PAGE_SIZE;
+		page_off = cur_off % PAGE_SIZE;
+		to_write = (page_off + size > PAGE_SIZE) ? PAGE_SIZE - page_off : size;
+		page = radix_get(&inode->data, page_no);
+		if (page == NULL) {
+			page = calloc(1, PAGE_SIZE);
+			radix_add(&inode->data, page_no, page);
+		}
+		memcpy((char *) page + page_off, data + cur_off - offset, to_write);
+		cur_off += to_write;
+		size -= to_write;
+	}
+	/* Resize the file */
+	if (cur_off - offset > inode->size)
+		inode->size = cur_off - offset;
 	/* LAB 5 TODO END */
 
 	return cur_off - offset;
@@ -322,7 +371,20 @@ ssize_t tfs_file_read(struct inode * inode, off_t offset, char *buff,
 	void *page;
 
 	/* LAB 5 TODO BEGIN */
-
+	/* Truncate the data block to read if cur_off + size > inode's size */
+	if (cur_off + size > inode->size) 
+		size = inode->size - cur_off;
+	/* Read data in each data block */
+	while (size > 0) {
+		page_no = cur_off / PAGE_SIZE;
+		page_off = cur_off % PAGE_SIZE;
+		to_read = (page_off + size > PAGE_SIZE) ? PAGE_SIZE - page_off : size;
+		page = radix_get(&inode->data, page_no);
+		memcpy(buff + cur_off - offset, (char *) page + page_off, to_read);
+		size -= to_read;
+		cur_off += to_read;
+	}
+	
 	/* LAB 5 TODO END */
 
 	return cur_off - offset;
