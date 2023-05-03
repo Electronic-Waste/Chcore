@@ -161,9 +161,7 @@ static int tfs_mknod(struct inode *dir, const char *name, size_t len, int mkdir)
 	inode->size = len;
 
 	/* Create dentry */
-	size_t name_len = 0;
-	while (name[name_len] != '\0') name_len++;
-	dent = new_dent(inode, name, name_len);
+	dent = new_dent(inode, name, strlen(name));
 	htable_add(dir, dent->name.hash, &dent->node);
 	/* LAB 5 TODO END */
 
@@ -409,9 +407,12 @@ int tfs_load_image(const char *start)
 	cpio_extract(start, "/");
 
 	for (f = g_files.head.next; f; f = f->next) {
-	/* LAB 5 TODO BEGIN */
-
-	/* LAB 5 TODO END */
+		/* LAB 5 TODO BEGIN */
+		leaf = f->name;
+		BUG_ON(tfs_namex(&dirat, &leaf, true) != 0);
+		dent = tfs_lookup(dirat, leaf, strlen(leaf));
+		tfs_file_write(dent->inode, 0, f->data, f->header.c_filesize);
+		/* LAB 5 TODO END */
 	}
 
 	return 0;
