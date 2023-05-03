@@ -155,14 +155,14 @@ static int tfs_mknod(struct inode *dir, const char *name, size_t len, int mkdir)
 	/* Create inode accorind to flag: mkdir */
 	inode = (mkdir == 0) ? new_reg() : new_dir();
 	if (inode->type == 0) {
-		WARN("inode error!");
+		BUG("inode error!");
 		return -ENOENT;
 	}
 	inode->size = len;
 
 	/* Create dentry */
 	dent = new_dent(inode, name, strlen(name));
-	htable_add(dir, dent->name.hash, &dent->node);
+	htable_add(&dir->dentries, dent->name.hash, &dent->node);
 	/* LAB 5 TODO END */
 
 	return 0;
@@ -233,11 +233,14 @@ int tfs_namex(struct inode **dirat, const char **name, int mkdir_p)
 
 	/* LAB 5 TODO BEGIN */
 	while (true) {
-		/* Get name between two '/' */
 		i = 0;
-		while (*(name + i) != "/") i++;
-		memcpy(buff, *(name), i);
+		while (*((*name) + i) != '/' && *((*name) + i) != '\0') i++;
+		/* Check if reach the end */
+		if (*((*name) + i) == '\0') {
+			return 0;
+		}
 		/* Look up dentry in parent dir 'dirat' */
+		memcpy(buff, (*name), i);
 		dent = tfs_lookup(*dirat, buff, i);
 		if (dent == NULL) {
 			if (!mkdir_p) 
@@ -248,12 +251,8 @@ int tfs_namex(struct inode **dirat, const char **name, int mkdir_p)
 			}
 		}
 		/* Check if reach the end */
-		if (*(name + i) == '\0') 
-			return 0;
-		else {
-			*name += i + 1;
-			*dirat = dent->inode;
-		}
+		*name += i + 1;
+		*dirat = dent->inode;
 	}
 	/* LAB 5 TODO END */
 
@@ -409,8 +408,16 @@ int tfs_load_image(const char *start)
 	for (f = g_files.head.next; f; f = f->next) {
 		/* LAB 5 TODO BEGIN */
 		leaf = f->name;
+		dirat = tmpfs_root;
+		debug("load %s\n", leaf);
 		BUG_ON(tfs_namex(&dirat, &leaf, true) != 0);
 		dent = tfs_lookup(dirat, leaf, strlen(leaf));
+		if (dent == NULL) {
+			tfs_creat(dirat, leaf, strlen(leaf));
+			dent = tfs_lookup(dirat, leaf, strlen(leaf));
+			BUG_ON(dent == NULL);
+		}
+		// debug("dent: name is %s and inode type is %d\n", dent->name.str, dent->inode->type);
 		tfs_file_write(dent->inode, 0, f->data, f->header.c_filesize);
 		/* LAB 5 TODO END */
 	}

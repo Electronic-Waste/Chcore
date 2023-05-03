@@ -32,7 +32,7 @@
 
 #define PREFIX "[tmpfs]"
 #define info(fmt, ...) printf(PREFIX " " fmt, ##__VA_ARGS__)
-#if 0
+#if 1
 #define debug(fmt, ...) \
 	printf(PREFIX "<%s:%d>: " fmt, __func__, __LINE__, ##__VA_ARGS__)
 #else
