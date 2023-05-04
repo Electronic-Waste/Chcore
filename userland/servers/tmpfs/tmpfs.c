@@ -241,6 +241,7 @@ int tfs_namex(struct inode **dirat, const char **name, int mkdir_p)
 		}
 		/* Look up dentry in parent dir 'dirat' */
 		memcpy(buff, (*name), i);
+		buff[i] = '\0';
 		dent = tfs_lookup(*dirat, buff, i);
 		if (dent == NULL) {
 			if (!mkdir_p) 
@@ -335,8 +336,11 @@ ssize_t tfs_file_write(struct inode * inode, off_t offset, const char *data,
 		page_no = cur_off / PAGE_SIZE;
 		page_off = cur_off % PAGE_SIZE;
 		to_write = (page_off + size > PAGE_SIZE) ? PAGE_SIZE - page_off : size;
+		// debug("page_no: %d, page_off: %d, to_write: %d\n", page_no, page_off, to_write);
 		page = radix_get(&inode->data, page_no);
+		// debug("page addr: %llx\n", page);
 		if (page == NULL) {
+			// debug("page is NULL: alloc a page\n");
 			page = calloc(1, PAGE_SIZE);
 			radix_add(&inode->data, page_no, page);
 		}
