@@ -578,7 +578,7 @@ u64 sys_ipc_call(u32 conn_cap, struct ipc_msg *ipc_msg, u64 cap_num)
          * Then what value should the arg be?
          * */
         /* LAB 4 TODO BEGIN: set arg */
-        arg = (char *) ipc_msg - 0x400000;
+        arg = (char *) ipc_msg - (conn->buf.client_user_addr - conn->buf.server_user_addr);
         /* LAB 4 TODO END */
 
         thread_migrate_to_server(conn, arg);

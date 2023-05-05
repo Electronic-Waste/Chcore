@@ -85,6 +85,7 @@ FILE *fopen(const char * filename, const char * mode) {
 	FILE *f = calloc(1, sizeof(FILE));
 	s64 ret = ipc_call(fs_ipc_struct, msg);
 	if (ret != fr->open.new_fd) {
+		debug("ret: %d\n", ret);
 		debug("error in ipc_call\n");
 		return NULL;
 	}
