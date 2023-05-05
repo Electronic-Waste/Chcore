@@ -12,6 +12,6 @@
 
 typedef struct FILE {
 	/* LAB 5 TODO BEGIN */
-
+	int fd;
 	/* LAB 5 TODO END */
 } FILE;

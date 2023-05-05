@@ -22,7 +22,7 @@ char getch()
 {
 	int c;
 	/* LAB 5 TODO BEGIN */
-
+	// fread(&c, 1, 1, stdin);
 	/* LAB 5 TODO END */
 
 	return (char) c;
