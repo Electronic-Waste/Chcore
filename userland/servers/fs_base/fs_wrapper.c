@@ -154,8 +154,6 @@ void fs_server_dispatch(struct ipc_msg *ipc_msg, u64 client_badge)
 	bool ret_with_cap = false;
 
 	fr = (struct fs_request *)ipc_get_msg_data(ipc_msg);
-	debug("ipc_msg addr: %llx, data_len: %d\n", ipc_msg, ipc_msg->data_len);
-	debug("fr type: %d, filename: %s\n", fr->req, fr->open.pathname);
 
 	spinlock_lock(&fs_wrapper_meta_lock);
 

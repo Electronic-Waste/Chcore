@@ -85,6 +85,12 @@ static int lab5_stdio_file_read_write () {
     } while(cnt > 0);
     fclose(pFile);
 
+	printf("wbuf: \n");
+	for (int i = 0; i < sizeof(wbuf); ++i) printf("%d", wbuf[i]);
+	printf("\nrbuf: \n");
+	for (int i = 0; i < sizeof(rbuf); ++i) printf("%d", rbuf[i]);
+	printf("\n");
+
     return memcmp(rbuf, (char*)wbuf + sizeof(wbuf) - sizeof(rbuf), sizeof(rbuf));
 }
 

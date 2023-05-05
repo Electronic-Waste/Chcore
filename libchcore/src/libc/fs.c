@@ -32,7 +32,6 @@ extern struct ipc_struct *fs_ipc_struct;
 
 /* You could add new functions or include headers here.*/
 /* LAB 5 TODO BEGIN */
-// #include <FILE.h>
 
 int next_fd = 0;
 
@@ -58,6 +57,10 @@ struct ipc_msg *create_ipc_msg_with_fr(struct fs_request *fr, const void *src, s
 	}
 	return msg;
 }
+
+void fs_destroy_ipc_msg(struct ipc_msg *msg) {
+	ipc_destroy_msg(fs_ipc_struct, msg);
+}
 /* LAB 5 TODO END */
 
 
@@ -77,21 +80,39 @@ FILE *fopen(const char * filename, const char * mode) {
 		debug("error in create ipc_msg");
 		return NULL;
 	}
-	debug("msg addr: %llx\n", msg);
-	struct fs_request *debug_fr = (struct fs_request *) ipc_get_msg_data(msg);
-	debug("fr type: %d, fd: %d, pathname: %s\n", debug_fr->req, debug_fr->open.new_fd, debug_fr->open.pathname);
 
 	/* Send ipc_call and construct FILE */
 	FILE *f = calloc(1, sizeof(FILE));
 	s64 ret = ipc_call(fs_ipc_struct, msg);
 	if (ret != fr->open.new_fd) {
-		debug("ret: %d\n", ret);
-		debug("error in ipc_call\n");
-		return NULL;
+		if (ret < 0 && strcmp(mode, "w") == 0) {
+			debug("file does not exist and need to create it first\n");
+			fs_destroy_ipc_msg(msg);	// destory first
+			/* Create file */
+			struct fs_request *create_fr = calloc(1, sizeof(struct fs_request));
+			create_fr->req = FS_REQ_CREAT;
+			create_fr->creat.mode = *(unsigned int *) mode;
+			memcpy(create_fr->creat.pathname, filename, strlen(filename) + 1);
+			struct ipc_msg *create_msg = create_ipc_msg_with_fr(create_fr, NULL, 0);
+			ret = ipc_call(fs_ipc_struct, create_msg);
+			fs_destroy_ipc_msg(create_msg);
+			free(create_fr);
+			free(create_msg);
+			BUG_ON(ret < 0);
+
+			/* Resend original ipc_msg */
+			msg = create_ipc_msg_with_fr(fr, NULL, 0);
+			ret = ipc_call(fs_ipc_struct, msg);
+			BUG_ON(ret != fr->open.new_fd);
+		}
+		else {
+			debug("error in ipc_call\n");
+			return NULL;
+		}
 	}
 	f->fd = ret;
+	fs_destroy_ipc_msg(msg);
 	free(fr);
-	free(msg);
 	return f;
 	/* LAB 5 TODO END */
     return NULL;
@@ -105,7 +126,7 @@ size_t fwrite(const void * src, size_t size, size_t nmemb, FILE * f) {
 	struct ipc_msg *msg = NULL;
 	fr->req = FS_REQ_WRITE;
 	fr->write.fd = f->fd;
-	fr->write.count = size;
+	fr->write.count = size * nmemb;
 	msg = create_ipc_msg_with_fr(fr, src, size * nmemb);
 	if (msg < 0) {
 		debug("error in create ipc_msg");
@@ -114,6 +135,9 @@ size_t fwrite(const void * src, size_t size, size_t nmemb, FILE * f) {
 
 	/* Send ipc_call and construct FILE */
 	s64 bytes_written = ipc_call(fs_ipc_struct, msg);
+	fs_destroy_ipc_msg(msg);
+	free(fr);
+	// debug("fwrite write %d bytes\n", bytes_written);
 	return (size_t) bytes_written;
 	/* LAB 5 TODO END */
     return 0;
@@ -137,7 +161,10 @@ size_t fread(void * destv, size_t size, size_t nmemb, FILE * f) {
 
 	/* Send ipc_call and construct FILE */
 	s64 bytes_read = ipc_call(fs_ipc_struct, msg);
-	memcpy(destv, fr, bytes_read);
+	memcpy(destv, ipc_get_msg_data(msg), bytes_read);
+	fs_destroy_ipc_msg(msg);
+	free(fr);
+	// debug("fread read %d bytes\n");
 	return (size_t) bytes_read;
 	/* LAB 5 TODO END */
     return 0;
@@ -150,6 +177,7 @@ int fclose(FILE *f) {
 	/* Fill in fs_request & ipc_msg */
 	struct fs_request *fr = calloc(1, sizeof(struct fs_request));
 	struct ipc_msg *msg = NULL;
+	fr->req = FS_REQ_CLOSE;
 	fr->close.fd = f->fd;
 	msg = create_ipc_msg_with_fr(fr, NULL, 0);
 	if (msg < 0) {
@@ -159,6 +187,8 @@ int fclose(FILE *f) {
 
 	/* Send ipc_call and construct FILE */
 	int ret = ipc_call(fs_ipc_struct, msg);
+	fs_destroy_ipc_msg(msg);
+	free(fr);
 	if (ret != 0) {
 		debug("error in ipc_call");
 		return ret;
