@@ -92,7 +92,9 @@ void fsm_server_dispatch(struct ipc_msg *ipc_msg, u64 client_badge)
 
 	/* You could add code here as you want.*/
 	/* LAB 5 TODO BEGIN */
-
+	size_t len = 0;
+	struct ipc_msg *ipc_msg_fsm = NULL;
+	struct fs_request *fr_fsm = NULL;
 	/* LAB 5 TODO END */
 
 	spinlock_lock(&fsmlock);
@@ -113,7 +115,77 @@ void fsm_server_dispatch(struct ipc_msg *ipc_msg, u64 client_badge)
 			break;
 
 		/* LAB 5 TODO BEGIN */
-
+		case FS_REQ_OPEN:
+			mpinfo = get_mount_point(fr->open.pathname, strlen(fr->open.pathname));
+			strip_path(mpinfo, fr->open.pathname);
+			ipc_msg_fsm = ipc_create_msg(mpinfo->_fs_ipc_struct, sizeof(struct fs_request), 0);
+			fr_fsm = (struct fs_request *) ipc_get_msg_data(ipc_msg_fsm);
+			fr_fsm->req = FS_REQ_OPEN;
+			fr_fsm->open.new_fd = fr->open.new_fd;
+			fr_fsm->open.flags = fr->open.flags;
+			fr_fsm->open.mode = fr->open.mode;
+			fr_fsm->open.fid = fr->open.fid;
+			strcpy(fr_fsm->open.pathname, fr->open.pathname);
+			ret = ipc_call(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			fsm_set_mount_info_withfd(client_badge, ret, mpinfo);
+			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			break;
+		case FS_REQ_READ:
+			len = fr->read.count;
+			mpinfo = fsm_get_mount_info_withfd(client_badge, fr->read.fd);
+			ipc_msg_fsm = ipc_create_msg(mpinfo->_fs_ipc_struct, sizeof(struct fs_request) + len, 0);
+			fr_fsm = (struct fs_request *) ipc_get_msg_data(ipc_msg_fsm);
+			fr_fsm->req = FS_REQ_READ;
+			fr_fsm->read.fd = fr->read.fd;
+			fr_fsm->read.count = fr->read.count;
+			ret = ipc_call(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			memcpy(fr, fr_fsm, ret);
+			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			break;
+		case FS_REQ_WRITE:
+			len = fr->write.count;
+			mpinfo = fsm_get_mount_info_withfd(client_badge, fr->write.fd);
+			ipc_msg_fsm = ipc_create_msg(mpinfo->_fs_ipc_struct, sizeof(struct fs_request) + len, 0);
+			fr_fsm = (struct fs_request *) ipc_get_msg_data(ipc_msg_fsm);
+			fr_fsm->req = FS_REQ_WRITE;
+			fr_fsm->write.count = fr->write.count;
+			fr_fsm->write.fd = fr->write.fd;
+			fr_fsm->write.write_buff_begin = fr->write.write_buff_begin;
+			memcpy((void *)fr_fsm + sizeof(struct fs_request), (void *)fr + sizeof(struct fs_request), len);
+			ret = ipc_call(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			break;
+		case FS_REQ_CLOSE:
+			mpinfo = fsm_get_mount_info_withfd(client_badge, fr->close.fd);
+			ipc_msg_fsm = ipc_create_msg(mpinfo->_fs_ipc_struct, sizeof(struct fs_request), 0);
+			fr_fsm = (struct fs_request *) ipc_get_msg_data(ipc_msg_fsm);
+			fr_fsm->req = FS_REQ_CLOSE;
+			fr_fsm->close.fd = fr->close.fd;
+			ret = ipc_call(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			break;
+		case FS_REQ_CREAT:
+			mpinfo = get_mount_point(fr->creat.pathname, strlen(fr->creat.pathname));
+			strip_path(mpinfo, fr->creat.pathname);
+			ipc_msg_fsm = ipc_create_msg(mpinfo->_fs_ipc_struct, sizeof(struct fs_request), 0);
+			fr_fsm = (struct fs_request *) ipc_get_msg_data(ipc_msg_fsm);
+			fr_fsm->req = FS_REQ_CREAT;
+			fr_fsm->creat.mode = fr->creat.mode;
+			strcpy(fr_fsm->creat.pathname, fr->creat.pathname);
+			ret = ipc_call(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			break;
+		case FS_REQ_GETDENTS64:
+			mpinfo = fsm_get_mount_info_withfd(client_badge, fr->getdents64.fd);
+			ipc_msg_fsm = ipc_create_msg(mpinfo->_fs_ipc_struct, 512, 0);
+			fr_fsm = (struct fs_request *) ipc_get_msg_data(ipc_msg_fsm);
+			fr_fsm->req = FS_REQ_GETDENTS64;
+			fr_fsm->getdents64.fd = fr->getdents64.fd;
+			fr_fsm->getdents64.count = fr->getdents64.count;
+			ret = ipc_call(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			memcpy((void *)fr, (void *)fr_fsm, ret);
+			ipc_destroy_msg(mpinfo->_fs_ipc_struct, ipc_msg_fsm);
+			break;
 		/* LAB 5 TODO END */
 
 		default:

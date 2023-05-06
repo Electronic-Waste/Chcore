@@ -228,6 +228,7 @@ void fs_scan(char *path)
 	FILE *dir = fopen(path, "r");
 	
 	int ret = getdents(dir->fd, scan_buf, BUFLEN);
+	
 
 	for (offset = 0; offset < ret; offset += p->d_reclen) {
 		p = (struct dirent *)(scan_buf + offset);
