@@ -16,7 +16,7 @@
 /*
  * 0: print nothing
  */
-#define FS_DEBUG 1
+#define FS_DEBUG 0
 
 #define COLOR_RED       "\033[31m"
 #define COLOR_GREEN     "\033[32m"

@@ -22,7 +22,7 @@ char getch()
 {
 	int c;
 	/* LAB 5 TODO BEGIN */
-	// fread(&c, 1, 1, stdin);
+	c = __chcore_sys_getc();
 	/* LAB 5 TODO END */
 
 	return (char) c;

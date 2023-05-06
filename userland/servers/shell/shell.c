@@ -166,7 +166,23 @@ char *readline(const char *prompt)
 
 	/* LAB 5 TODO BEGIN */
 	/* Fill buf and handle tabs with do_complement(). */
-
+		if (c == '\t') {
+			ret = do_complement(buf, complement, complement_time);
+			if (ret < 0) {
+				debug("some error occurred in do_complement\n");
+			}
+			printf("%s", complement);
+			++complement_time;
+		}
+		else if (c == '\n') {
+			buf[i] = '\0';
+			break;
+		}
+		else {
+			buf[i] = c;
+			printf("%c", c);
+			++i;
+		}
 	/* LAB 5 TODO END */
 	}
 
@@ -183,7 +199,12 @@ void print_file_content(char* path)
 {
 
 	/* LAB 5 TODO BEGIN */
-
+	char rbuf[512];
+	FILE *f = fopen(path, "r");
+	size_t bytes_read = fread(rbuf, 512, 1, f);
+	for (int i = 0; i < bytes_read; ++i) {
+		printf("%c", rbuf[i]);
+	}
 	/* LAB 5 TODO END */
 
 }
@@ -193,7 +214,7 @@ void fs_scan(char *path)
 {
 
 	/* LAB 5 TODO BEGIN */
-
+	
 	/* LAB 5 TODO END */
 }
 
@@ -226,7 +247,13 @@ int do_cat(char *cmdline)
 int do_echo(char *cmdline)
 {
 	/* LAB 5 TODO BEGIN */
-
+	int start_pos = 0;
+	/* skip 'echo' */
+	while (cmdline[start_pos] != ' ') start_pos++;
+	/* skip blank character */
+	while (cmdline[start_pos] == ' ') start_pos++;
+	/* print content */
+	printf("%s\n", cmdline + start_pos);
 	/* LAB 5 TODO END */
 	return 0;
 }
@@ -278,7 +305,7 @@ int run_cmd(char *cmdline)
 	int cap = 0;
 	/* Hint: Function chcore_procm_spawn() could be used here. */
 	/* LAB 5 TODO BEGIN */
-
+	chcore_procm_spawn(cmdline, &fs_server_cap);
 	/* LAB 5 TODO END */
 	return 0;
 }

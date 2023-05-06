@@ -323,7 +323,7 @@ int fprintf(FILE * f, const char * fmt, ...) {
 	// for (int i = 0; i <= buf_cursor; ++i)
 	// 	printf("%c", wbuf[i]);
 	// printf("\n");
-	// debug("ret: %d\n", ret);
+	debug("ret: %d\n", ret);
 	/* LAB 5 TODO END */
     return 0;
 }
