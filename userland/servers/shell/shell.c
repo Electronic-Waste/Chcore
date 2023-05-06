@@ -182,6 +182,7 @@ char *readline(const char *prompt)
 		}
 		else if (c == '\n') {
 			buf[i] = '\0';
+			printf("\n");
 			break;
 		}
 		else {
