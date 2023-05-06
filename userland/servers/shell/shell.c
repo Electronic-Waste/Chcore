@@ -214,7 +214,20 @@ void fs_scan(char *path)
 {
 
 	/* LAB 5 TODO BEGIN */
+	char scan_buf[BUFLEN];
+	char name[BUFLEN];
+	int offset;
+	struct dirent *p;
+
+	FILE *dir = fopen(path, "r");
 	
+	int ret = getdents(dir->fd, scan_buf, BUFLEN);
+
+	for (offset = 0; offset < ret; offset += p->d_reclen) {
+		p = (struct dirent *)(scan_buf + offset);
+		get_dent_name(p, name);
+		printf("%s ", name);
+	}
 	/* LAB 5 TODO END */
 }
 
@@ -253,7 +266,7 @@ int do_echo(char *cmdline)
 	/* skip blank character */
 	while (cmdline[start_pos] == ' ') start_pos++;
 	/* print content */
-	printf("%s\n", cmdline + start_pos);
+	printf("%s", cmdline + start_pos);
 	/* LAB 5 TODO END */
 	return 0;
 }
@@ -305,7 +318,8 @@ int run_cmd(char *cmdline)
 	int cap = 0;
 	/* Hint: Function chcore_procm_spawn() could be used here. */
 	/* LAB 5 TODO BEGIN */
-	chcore_procm_spawn(cmdline, &fs_server_cap);
+	cap = fs_server_cap;
+	chcore_procm_spawn(cmdline, &cap);
 	/* LAB 5 TODO END */
 	return 0;
 }

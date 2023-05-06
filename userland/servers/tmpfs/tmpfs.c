@@ -412,6 +412,7 @@ int tfs_load_image(const char *start)
 	for (f = g_files.head.next; f; f = f->next) {
 		/* LAB 5 TODO BEGIN */
 		leaf = f->name;
+		if (strcmp(leaf, ".") == 0) continue;
 		dirat = tmpfs_root;
 		debug("load %s\n", leaf);
 		BUG_ON(tfs_namex(&dirat, &leaf, true) != 0);

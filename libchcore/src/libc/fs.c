@@ -202,10 +202,10 @@ int fclose(FILE *f) {
 int fscanf(FILE * f, const char * fmt, ...) {
 
 	/* LAB 5 TODO BEGIN */
-	char rbuf[512];
+	char rbuf[4096];
 	va_list ap;
 	va_start(ap, fmt);
-	size_t bytes_read = fread(rbuf, 512, 1, f);
+	size_t bytes_read = fread(rbuf, 4096, 1, f);
 	size_t fmt_len = strlen(fmt);
 	// printf("fscanf string: ");
 	// for (int i = 0; i < bytes_read; ++i) {
@@ -264,7 +264,7 @@ int fscanf(FILE * f, const char * fmt, ...) {
 int fprintf(FILE * f, const char * fmt, ...) {
 
 	/* LAB 5 TODO BEGIN */
-	char wbuf[512];
+	char wbuf[4096];
 	va_list ap;
 	va_start(ap, fmt);
 	size_t fmt_len = strlen(fmt);
