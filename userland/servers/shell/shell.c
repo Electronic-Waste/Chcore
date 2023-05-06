@@ -134,7 +134,17 @@ int do_complement(char *buf, char *complement, int complement_time)
 	int offset;
 
 	/* LAB 5 TODO BEGIN */
-
+	FILE *dir = fopen("/", "r");
+	ret = getdents(dir->fd, scan_buf, BUFLEN);
+	while (complement_time > 0) {
+		for (offset = 0; offset < ret && complement_time > 0; 
+			offset += p->d_reclen, complement_time--) {
+			p = (struct dirent *)(scan_buf + offset);
+			get_dent_name(p, name);
+		}
+	}
+	
+	strcpy(complement, name);
 	/* LAB 5 TODO END */
 
 	return r;
@@ -167,12 +177,8 @@ char *readline(const char *prompt)
 	/* LAB 5 TODO BEGIN */
 	/* Fill buf and handle tabs with do_complement(). */
 		if (c == '\t') {
-			ret = do_complement(buf, complement, complement_time);
-			if (ret < 0) {
-				debug("some error occurred in do_complement\n");
-			}
+			do_complement(buf, complement, ++complement_time);
 			printf("%s", complement);
-			++complement_time;
 		}
 		else if (c == '\n') {
 			buf[i] = '\0';
