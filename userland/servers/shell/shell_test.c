@@ -85,12 +85,6 @@ static int lab5_stdio_file_read_write () {
     } while(cnt > 0);
     fclose(pFile);
 
-	printf("wbuf: \n");
-	for (int i = 0; i < sizeof(wbuf); ++i) printf("%d", wbuf[i]);
-	printf("\nrbuf: \n");
-	for (int i = 0; i < sizeof(rbuf); ++i) printf("%d", rbuf[i]);
-	printf("\n");
-
     return memcmp(rbuf, (char*)wbuf + sizeof(wbuf) - sizeof(rbuf), sizeof(rbuf));
 }
 
@@ -111,6 +105,9 @@ static int lab5_stdio_file_printf_scanf () {
 	fclose(pFile);
 	free(ptr);
 
+	printf("rbuf: %s\n", rbuf);
+	printf("rbuf2: %s\n", rbuf2);
+	printf("outdata: %d\n", outdata);
     return strncmp(rbuf, "fprintf", 7) != 0 || strcmp(rbuf2, __func__) != 0 || outdata != data;
 }
 

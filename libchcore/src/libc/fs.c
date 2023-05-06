@@ -202,8 +202,59 @@ int fclose(FILE *f) {
 int fscanf(FILE * f, const char * fmt, ...) {
 
 	/* LAB 5 TODO BEGIN */
-	// char *buf = calloc(1, FS_READ_BUF_SIZE);
-	// size_t bytes_read = fread(buf, FS_READ_BUF_SIZE, 1, f);
+	char rbuf[512];
+	va_list ap;
+	va_start(ap, fmt);
+	size_t bytes_read = fread(rbuf, 512, 1, f);
+	size_t fmt_len = strlen(fmt);
+	// printf("fscanf string: ");
+	// for (int i = 0; i < bytes_read; ++i) {
+	// 	printf("%c", rbuf[i]);
+	// }
+	// printf("\n");
+
+	int fmt_cursor = 0;
+	int buf_cursor = 0;
+	while (fmt_cursor < fmt_len) {
+		if (fmt[fmt_cursor] == '%') {
+			/* int type */
+			if (fmt[fmt_cursor + 1] == 'd') {
+				int len = 0;
+				while (rbuf[buf_cursor + len] >= '0' 
+						&& rbuf[buf_cursor + len] <= '9'
+						&& buf_cursor + len < bytes_read) len++;
+				int *num = va_arg(ap, int *);
+				for (int i = 0; i < len; ++i) {
+					*num = (*num) * 10 + (rbuf[buf_cursor + i] - '0');
+				}
+				buf_cursor += len;
+				fmt_cursor += 2;
+			}
+			/* char* type */
+			else if (fmt[fmt_cursor + 1] == 's') {
+				int len = 0;
+				char *buf = va_arg(ap, char *);
+				while (rbuf[buf_cursor + len] != ' ' 
+						&& buf_cursor + len < bytes_read) {
+					buf[len] = rbuf[buf_cursor + len];
+					++len;
+				}
+				buf_cursor += len;
+				fmt_cursor += 2;
+			}
+			else {
+				debug("error: type not supported!");
+				return -1;
+			}
+		}
+		/* Blank character */
+		else if (fmt[fmt_cursor] != '\0'){
+			buf_cursor++;
+			fmt_cursor++;
+		}
+		/* Reach '\0' */
+		else break;
+	}
 	
 	/* LAB 5 TODO END */
     return 0;
@@ -213,8 +264,66 @@ int fscanf(FILE * f, const char * fmt, ...) {
 int fprintf(FILE * f, const char * fmt, ...) {
 
 	/* LAB 5 TODO BEGIN */
+	char wbuf[512];
+	va_list ap;
+	va_start(ap, fmt);
+	size_t fmt_len = strlen(fmt);
 	
-	
+	int fmt_cursor = 0;
+	int buf_cursor = 0;
+	while (fmt_cursor < fmt_len) {
+		if (fmt[fmt_cursor] == '%') {
+			/* int type */
+			if (fmt[fmt_cursor + 1] == 'd') {
+				int num = va_arg(ap, int);
+				// debug("num is %d\n", num);
+				size_t num_len = 0;
+				char num_buf[12];
+				while (true) {
+					if (num > 0) {
+						num_buf[num_len] = num % 10 + '0';
+						num /= 10;
+						++num_len;
+					}
+					else break;
+				}
+				for (int i = 0; i < num_len; ++i) {
+					wbuf[buf_cursor + i] = num_buf[num_len - 1 - i];
+				}
+				buf_cursor += num_len;
+				fmt_cursor += 2;
+
+			}
+			/* char* type */
+			else if (fmt[fmt_cursor + 1] == 's') {
+				char *buf = va_arg(ap, char *);
+				size_t buf_len = strlen(buf);
+				for (int i = 0; i < buf_len; ++i) {
+					wbuf[buf_cursor + i] = buf[i];
+				}
+				buf_cursor += buf_len;
+				fmt_cursor += 2;
+			}
+			else {
+				debug("error: type not supported!");
+				return -1;
+			}
+		}
+		/* Blank character */
+		else if (fmt[fmt_cursor] != '\0') {
+			wbuf[buf_cursor] = fmt[fmt_cursor];
+			++buf_cursor;
+			++fmt_cursor;
+		}
+		else break;
+	}
+	wbuf[buf_cursor] = '\0';
+	size_t ret = fwrite(wbuf, buf_cursor + 1, 1, f);
+	// printf("fprintf string: ");
+	// for (int i = 0; i <= buf_cursor; ++i)
+	// 	printf("%c", wbuf[i]);
+	// printf("\n");
+	// debug("ret: %d\n", ret);
 	/* LAB 5 TODO END */
     return 0;
 }
