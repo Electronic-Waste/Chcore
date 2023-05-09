@@ -227,6 +227,9 @@ int fs_wrapper_write(struct ipc_msg *ipc_msg, struct fs_request *fr)
 	* - If offset is outside the file (notice size=0 is handled)
 	*      Filling '\0' until offset pos, then append file
 	*/
+	// printf("fs_wrapper_write_buf: \n");
+	// for (int i = 0; i < size; ++i) printf("%d", buf[i]);
+	// printf("\n");
 
 	ret = server_ops.write(operator, offset, size, buf);
 

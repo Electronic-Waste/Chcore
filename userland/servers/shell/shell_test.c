@@ -105,6 +105,9 @@ static int lab5_stdio_file_printf_scanf () {
 	fclose(pFile);
 	free(ptr);
 
+	// printf("rbuf: %s\n", rbuf);
+	// printf("rbuf2: %s\n", rbuf2);
+	// printf("outdata: %d\n", outdata);
     return strncmp(rbuf, "fprintf", 7) != 0 || strcmp(rbuf2, __func__) != 0 || outdata != data;
 }
 
