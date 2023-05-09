@@ -275,6 +275,11 @@ static inline s32 __chcore_sys_signal_sem(u32 sem_cap)
         return __chcore_syscall1(__CHCORE_SYS_signal_sem, sem_cap);
 }
 
+static inline s32 __chcore_sys_clock_gettime(u64 clock, u64 ts)
+{
+        return __chcore_syscall2(__CHCORE_SYS_clock_gettime, clock, ts);
+}
+
 #ifdef __cplusplus
 }
 #endif

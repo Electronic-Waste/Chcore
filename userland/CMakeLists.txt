@@ -10,8 +10,8 @@ add_compile_options(-fPIE -nostdinc -ffreestanding)
 include_directories(${_libchcore_install_dir}/include
                     ${_libchcore_install_dir}/include/libc)
 add_link_options(-static -no-pie -nostdlib -nostartfiles -e _start)
-link_libraries(${_libchcore_install_dir}/lib/crt0.o
-               ${_libchcore_install_dir}/lib/libchcore.a)
+# link_libraries(${_libchcore_install_dir}/lib/crt0.o
+#                ${_libchcore_install_dir}/lib/libchcore.a)
 
 set(_ramdisk_dir ${CMAKE_CURRENT_BINARY_DIR}/ramdisk)
 file(REMOVE_RECURSE ${_ramdisk_dir})
@@ -48,6 +48,13 @@ function(chcore_copy_all_targets_to_ramdisk)
             chcore_copy_target_to_ramdisk(${_target})
         endif()
     endforeach()
+endfunction()
+
+function(add_executable _target)
+    _add_executable(${_target} ${ARGN})
+    target_link_libraries(
+        ${_target} PRIVATE ${_libchcore_install_dir}/lib/crt0.o
+        ${_libchcore_install_dir}/lib/libchcore.a)
 endfunction()
 
 add_subdirectory(servers)

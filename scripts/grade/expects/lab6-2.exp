@@ -1,0 +1,43 @@
+#!/usr/bin/expect -f
+
+proc print {msg} {
+    puts "GRADE: $msg"
+    flush stdout
+}
+
+set timeout 10
+log_user 0
+
+spawn bash -c "./scripts/grade/expects/host_sdimg_check.py"
+set qemu_pid [exp_pid -i $spawn_id]
+
+set scores {
+    {"sd_driver: check sd_img in host"                     0 30}
+}
+
+proc grade {} {
+    global scores
+    set score 0
+    foreach x $scores {
+        set name [lindex $x 0]
+        set n [lindex $x 1]
+        print "$name: $n"
+        incr score $n
+    }
+    global qemu_pid
+    exec kill -9 $qemu_pid
+    exit $score
+}
+
+trap {
+    grade
+} SIGINT
+
+expect {
+    "host_sd_io_test pass!" {
+        lset scores {0 1} [lindex $scores {0 2}]
+        exp_continue -continue_timer
+    }
+}
+
+grade

@@ -23,6 +23,7 @@ enum procm_ipc_request {
         PROCM_IPC_REQ_SPAWN,
         PROCM_IPC_REQ_EXIT,
         PROCM_IPC_REQ_WAITPID,
+        PROCM_IPC_REQ_GET_SD_SERVER_CAP,
         PROCM_IPC_REQ_MAX,
 };
 

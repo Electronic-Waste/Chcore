@@ -1,4 +1,4 @@
-LAB := 5
+LAB := 6
 
 V := @
 PROJECT_DIR := .
@@ -7,7 +7,7 @@ KERNEL_IMG := $(BUILD_DIR)/kernel.img
 QEMU := qemu-system-aarch64
 _QEMU := $(PROJECT_DIR)/scripts/qemu/qemu_wrapper.sh $(QEMU)
 QEMU_GDB_PORT := 1234
-QEMU_OPTS := -machine raspi3b -nographic -serial null -serial mon:stdio -m size=1G -kernel $(KERNEL_IMG)
+QEMU_OPTS := -machine raspi3b -nographic -serial null -serial mon:stdio -m size=1G -kernel $(KERNEL_IMG) -drive if=sd,format=raw,file=$(SD_CARD_PATH)
 GDB := gdb-multiarch
 CHBUILD := $(PROJECT_DIR)/chbuild
 
@@ -21,7 +21,7 @@ defconfig:
 
 build:
 	$(V)test -f $(PROJECT_DIR)/.config || $(CHBUILD) defconfig
-	$(V)$(CHBUILD) rebuild
+	$(V)$(CHBUILD) rebuild && dd if=/dev/zero of=$(BUILD_DIR)/sd.img bs=512 count=32768
 
 clean:
 	$(V)$(CHBUILD) clean

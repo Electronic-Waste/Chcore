@@ -33,6 +33,7 @@ static void ipc_dispatch(struct ipc_msg *ipc_msg, u64 client_pid)
         int mt_cap, pcid, pid;
         bool path_valid = false;
         struct procm_ipc_data *ipc_data;
+        static int __sd_server_cap = -1;
 
         if (!ipc_msg)
                 ipc_return(0, ret);
@@ -61,6 +62,13 @@ static void ipc_dispatch(struct ipc_msg *ipc_msg, u64 client_pid)
         case PROCM_IPC_REQ_WAITPID:
                 /* WAIT PID */
                 ret = internal_waitpid(ipc_data->waitpid.pid);
+                break;
+        case PROCM_IPC_REQ_GET_SD_SERVER_CAP:
+                if (__sd_server_cap == -1) {
+                        spawn("/sd.srv", &__sd_server_cap);
+                }
+                ipc_msg->cap_slot_number = 1;
+                ipc_set_msg_cap(ipc_msg, 0, __sd_server_cap);
                 break;
         default:
                 ret = -1;
