@@ -180,9 +180,9 @@ char *readline(const char *prompt)
 			do_complement(buf, complement, ++complement_time);
 			printf("%s", complement);
 		}
-		else if (c == '\n') {
+		else if (c == '\n' || c == '\r') {
 			buf[i] = '\0';
-			printf("\n");
+			printf("%c", c);
 			break;
 		}
 		else {

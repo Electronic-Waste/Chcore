@@ -43,7 +43,7 @@ int ipc_register_server(server_handler server_handler)
 /* Lab4: Register IPC client */
 struct ipc_struct *ipc_register_client(int server_thread_cap)
 {
-        int conn_cap, retry_times = RETRY_UPPER_BOUND;
+        int conn_cap, retry_times = RETRY_UPPER_BOUND * 5;
         struct ipc_struct *ipc_struct = malloc(sizeof(struct ipc_struct));
         // Assign a unique id for each client
         int client_id = __sync_fetch_and_add(&client_ipc_num, 1);

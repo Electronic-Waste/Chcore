@@ -8,7 +8,7 @@ int naive_fs_access(const char *name)
 {
     /* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
-
+    
     /* BLANK END */
     /* LAB 6 TODO END */
     return -2;
