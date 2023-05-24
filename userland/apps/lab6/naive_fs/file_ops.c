@@ -232,7 +232,61 @@ int naive_fs_unlink(const char *name)
 {
     /* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
+    if (naive_fs_access(name) != 0) return -1;  // Error file does not exist
 
+    char inode_map[BLOCK_SIZE];
+    char dentry_buf[BLOCK_SIZE];
+    char new_dentry_buf[BLOCK_SIZE];
+    char name_buf[24];
+    sd_bread(0, inode_map);
+    sd_bread(1, dentry_buf);
+    // Get inode num
+    int start_pos = 0, end_pos = 0;
+    int inode_num = 0;
+    int new_dentry_buf_pos = 0;
+    while (1) {
+        while (dentry_buf[end_pos] != '/' 
+                && end_pos < BLOCK_SIZE) end_pos++;
+        if (end_pos >= BLOCK_SIZE) {
+            printf("naive_fs_pwrite: can't find dentry!\n");
+            return -1;
+        }
+        memcpy(name_buf, dentry_buf + start_pos, end_pos - start_pos);
+        name_buf[end_pos - start_pos] = '\0';
+        start_pos = ++end_pos;
+        // If Match
+        if (strcmp(name, name_buf) == 0) {
+            printf("naive_fs_pwrite: match!\n");
+            while (dentry_buf[end_pos] != '/') end_pos++;
+            for (int i = start_pos; i < end_pos; ++i) {
+                inode_num = inode_num * 10 + (dentry_buf[i] - '0');
+            }
+        }
+        // If not match, skip following inode num and copy them to new_dentry_buf
+        else {
+            while (dentry_buf[end_pos] != '/') end_pos++;
+            memcpy(new_dentry_buf + new_dentry_buf_pos, dentry_buf + start_pos, end_pos - start_pos + 1);
+            new_dentry_buf_pos += end_pos - start_pos + 1;
+            start_pos = ++end_pos;
+        }
+    }
+    
+    // Read inode
+    char inode[BLOCK_SIZE];
+    char block[BLOCK_SIZE];
+    sd_bread(inode_num, inode);
+    int block_num = * (int *) inode;
+    sd_bread(block_num, block);
+    memset(inode, 0, BLOCK_SIZE);
+    memset(block, 0, BLOCK_SIZE);
+    inode_map[inode_num] = 0;
+    inode_map[block_num] = 0;
+
+    // Update to sd card
+    sd_bwrite(0, inode_num);
+    sd_bwrite(1, new_dentry_buf);
+    sd_bwrite(inode_num, inode);
+    sd_bwrite(block_num, block);
     /* BLANK END */
     /* LAB 6 TODO END */
     return -2;
