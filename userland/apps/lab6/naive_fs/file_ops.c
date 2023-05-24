@@ -115,7 +115,49 @@ int naive_fs_pread(const char *name, int offset, int size, char *buffer)
 {
     /* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
+    if (naive_fs_access(name) != 0) return -1;  // Error file does not exist
 
+    char dentry_buf[BLOCK_SIZE];
+    char name_buf[24];
+    sd_bread(1, dentry_buf);
+    
+    // Get inode num
+    int start_pos = 0, end_pos = 0;
+    int inode_num = 0;
+    while (1) {
+        while (dentry_buf[end_pos] != '/' 
+                && end_pos < BLOCK_SIZE) end_pos++;
+        if (end_pos >= BLOCK_SIZE) {
+            printf("naive_fs_pread: can't find dentry!\n");
+            return -1;
+        }
+        memcpy(name_buf, dentry_buf + start_pos, end_pos - start_pos);
+        name_buf[end_pos - start_pos] = '\0';
+        start_pos = ++end_pos;
+        // If Match
+        if (strcmp(name, name_buf) == 0) {
+            printf("naive_fs_pread: match!\n");
+            while (dentry_buf[end_pos] != '/') end_pos++;
+            for (int i = start_pos; i < end_pos; ++i) {
+                inode_num = inode_num * 10 + (dentry_buf[i] - '0');
+            }
+            break;
+        }
+        // If not match, skip following inode num
+        else {
+            while (dentry_buf[end_pos] != '/') end_pos++;
+            start_pos = ++end_pos;
+        }
+    }
+
+    // Read inode & the content
+    char inode[BLOCK_SIZE];
+    char block[BLOCK_SIZE];
+    sd_bread(inode_num, inode);
+    int *block_num = inode;
+    sd_bread(*block_num, block);
+    memcpy(buffer, block + offset, size);
+    return size;
     /* BLANK END */
     /* LAB 6 TODO END */
     return -2;
@@ -125,7 +167,62 @@ int naive_fs_pwrite(const char *name, int offset, int size, const char *buffer)
 {
     /* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
+    if (naive_fs_access(name) != 0) return -1;  // Error file does not exist
 
+    char inode_map[BLOCK_SIZE];
+    char dentry_buf[BLOCK_SIZE];
+    char name_buf[24];
+    sd_bread(0, inode_map);
+    sd_bread(1, dentry_buf);
+    
+    // Get inode num
+    int start_pos = 0, end_pos = 0;
+    int inode_num = 0;
+    while (1) {
+        while (dentry_buf[end_pos] != '/' 
+                && end_pos < BLOCK_SIZE) end_pos++;
+        if (end_pos >= BLOCK_SIZE) {
+            printf("naive_fs_pwrite: can't find dentry!\n");
+            return -1;
+        }
+        memcpy(name_buf, dentry_buf + start_pos, end_pos - start_pos);
+        name_buf[end_pos - start_pos] = '\0';
+        start_pos = ++end_pos;
+        // If Match
+        if (strcmp(name, name_buf) == 0) {
+            printf("naive_fs_pwrite: match!\n");
+            while (dentry_buf[end_pos] != '/') end_pos++;
+            for (int i = start_pos; i < end_pos; ++i) {
+                inode_num = inode_num * 10 + (dentry_buf[i] - '0');
+            }
+            break;
+        }
+        // If not match, skip following inode num
+        else {
+            while (dentry_buf[end_pos] != '/') end_pos++;
+            start_pos = ++end_pos;
+        }
+    }
+
+    // Read inode & write to block
+    char inode[BLOCK_SIZE];
+    char block[BLOCK_SIZE];
+    sd_bread(inode_num, inode);
+    int *block_num = inode;
+    if (*block_num < 64) {
+        for (int i = 64; i < 512; ++i) {
+            if (inode_map[i] == 0) {
+                inode_map[i] = 1;
+                *block_num = i;
+            }
+        }
+        sd_bwrite(0, inode_map);
+        sd_bwrite(inode_num, inode);
+    }
+    sd_bread(*block_num, block);
+    memcpy(block + offset, buffer, size);
+    sd_bwrite(*block_num, block);
+    return size;
     /* BLANK END */
     /* LAB 6 TODO END */
     return -2;

@@ -49,16 +49,12 @@ static int test_naive_fs_creat()
 
     strcpy(pn_buf, "testfile0");
     for (int i = 0; i < 10; ++i) {
-        printf("1\n");
         if (naive_fs_access(pn_buf) != -1)
             return -1;
-        printf("2\n");
         if (naive_fs_creat(pn_buf) != 0)
             return -1;
-        printf("3\n");
         if (naive_fs_access(pn_buf) != 0)
             return -1;
-        printf("4\n");
         pn_buf[8]++;
     }
 
