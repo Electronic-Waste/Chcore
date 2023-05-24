@@ -287,6 +287,7 @@ int naive_fs_unlink(const char *name)
     sd_bwrite(1, new_dentry_buf);
     sd_bwrite(inode_num, inode);
     sd_bwrite(block_num, block);
+    return 0;
     /* BLANK END */
     /* LAB 6 TODO END */
     return -2;
